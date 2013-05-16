@@ -1,0 +1,23 @@
+To build SkypeExport for OS X, you need Xcode 4+, as well as Boost installed in /usr/local/include/boost and /usr/local/libs/
+
+Here's how you install and build Boost on Mac OS X:
+
+* Download and unpack the latest Boost Unix installer anywhere.
+
+* Go there and type:
+sudo ./bootstrap.sh
+sudo ./b2 -a link=static variant=release threading=multi toolset=darwin architecture=x86 address-model=32_64 macosx-version=10.6 stage
+
+This builds release-only, multithreading-aware libraries, static (no shared junk), for 32 and 64 bit intel, requiring OSX 10.6+. There is NO PowerPC build support in Xcode 4+, and also no 10.4/10.5 SDKs. Also, if you want to release for OS X 10.4/10.5 then you must separately build libraries for that, which is a hassle. And if you want to release for PowerPC then you likewise need to use Xcode 3 (and build with architecture=combined). So, as you can see, building for anything but 10.6+ Intel is a hassle.
+
+* Now install the Boost library with:
+sudo ./b2 link=static variant=release threading=multi toolset=darwin architecture=x86 address-model=32_64 macosx-version=10.6 install
+
+It will automatically install the library in /usr/local/libs/libboost-* and /usr/local/include/boost/* -- this can be overridden with --prefix=<your path> but it's not recommended, as /usr/local/ is the default Boost path on UNIX and Linux.
+
+You can verify that the libraries are 32/64 Intel by using "lipo -info" on the resulting libs.
+
+After the process is complete, you can then delete the installation source folder, since it only contains some Boost documentation + examples, and is of no use unless you need that kind of thing on your local drive. It's all available online anyway.
+
+* Now just build SkypeExport by typing ./build_macosx.sh, which creates a Universal 32/64bit Intel Binary usable on Mac OS X 10.6+.
+
