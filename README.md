@@ -4,6 +4,29 @@ Cross-platform Skype history exporter written in C++. Very fast. Spits out beaut
 
 Supports all features of the Skype protocol thanks to careful reverse-engineering.
 
+## Features
+
+* Output all contacts or just a certain subset.
+* Edited-state of messages.
+* Delivery-state (Pending/delivered).
+* Emotes (/me emotes).
+* File transfers and their states (including multi-recipient transfers in conferences), their filenames and sizes (in human-friendly format).
+* Phone calls (incoming/outgoing/missed/ended).
+* Conference chats (their creation as well as their contents and people being added/leaving and all the chat history and events that took place in the conference, along with a custom style to set conferences apart graphically).
+* Text messages including dynamic page-width based wrapping of extremely long words.
+* Text with multiple whitespaces and/or indentations is drawn properly.
+* Removed messages ("This message has been removed.").
+* Sender of a message (with their exact name at that point in time).
+* Web links.
+* Timestamps.
+* Emoticons (all of them).
+* All country flag icons.
+* Detection and output of Display Name changes for yourself and others without needing a change in message-chunk direction (not even Skype does this!).
+* Complete history export including every conference they were ever added to/talked in (this is something that even Skype itself cannot do!).
+* The entire history for a chat contact is output as a *single* XHTML file that works in all modern browsers and contains the *entire* history and *all* images, stylesheets, etc (in a highly compressed format); this means you can share a single .htm file and it will contain the entire history and everything required to render it properly!
+* It even outputs the complete history for people you have long-since deleted from your contact list!
+* ...and much more (actually, that's all the major stuff, so not that much more ;)).
+
 ## Compiling
 
 * Windows compilation is done using Visual Studio or the compiler of your choice.
