@@ -292,7 +292,15 @@ namespace SkypeParser
 		// build conference or 1on1 query
 		std::string logQuery = "SELECT type, chatmsg_status, author, from_dispname, body_xml, timestamp, edited_timestamp, guid, convo_id, identities FROM Messages WHERE ";
 		if( !isConference ){
-			logQuery.append("dialog_partner=?"); // grabs all messages and status nodes to/from the person with the given skypeid.
+			// OLD QUERY:
+			//logQuery.append("dialog_partner=?"); // grabs all messages and status nodes to/from the person with the given skypeid.
+
+			// The above query produces incomplete conversations, since some messages have no dialog_partner. This may be because the partner
+			// is not online and/or visible at the time. The approach below is based on the assumption that only one conversation exists with
+			// exactly two participants, for each dialog partner (true for the databases I have seen). The complete conversation is therefore
+			// all messages associated with that conversation.
+			// TODO: Consider passing a convo_id in all cases to this method
+			logQuery.append("convo_id = (SELECT MAX(convo_id) FROM Participants INNER JOIN Conversations ON Participants.convo_id = Conversations.id GROUP BY convo_id HAVING COUNT(*) = 2 AND SUM(CASE WHEN Participants.identity = ? THEN 1 ELSE 0 END) = 1)");
 		}else{
 			logQuery.append("convo_id=?"); // grabs all messages and status nodes to/from the given conference chat.
 		}
