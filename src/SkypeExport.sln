@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SkypeExport", "SkypeExport\SkypeExport.vcxproj", "{FB9EAF1F-E0EB-4CE6-B6A9-0AA3A7D9EB11}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "file2header", "SkypeExport\resources\file2header\file2header.vcxproj", "{C0DAEAF9-BAC3-41CF-9746-FBC03A5A2F5A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FB9EAF1F-E0EB-4CE6-B6A9-0AA3A7D9EB11}.Debug|Win32.ActiveCfg = Debug|Win32
+		{FB9EAF1F-E0EB-4CE6-B6A9-0AA3A7D9EB11}.Debug|Win32.Build.0 = Debug|Win32
+		{FB9EAF1F-E0EB-4CE6-B6A9-0AA3A7D9EB11}.Release|Win32.ActiveCfg = Release|Win32
+		{FB9EAF1F-E0EB-4CE6-B6A9-0AA3A7D9EB11}.Release|Win32.Build.0 = Release|Win32
+		{C0DAEAF9-BAC3-41CF-9746-FBC03A5A2F5A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C0DAEAF9-BAC3-41CF-9746-FBC03A5A2F5A}.Debug|Win32.Build.0 = Debug|Win32
+		{C0DAEAF9-BAC3-41CF-9746-FBC03A5A2F5A}.Release|Win32.ActiveCfg = Release|Win32
+		{C0DAEAF9-BAC3-41CF-9746-FBC03A5A2F5A}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
