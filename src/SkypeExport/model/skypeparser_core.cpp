@@ -98,6 +98,7 @@ namespace SkypeParser
 		}
 
 		// iterate through all conferences and store their ids and titles (we will add the participant skypeIDs in the next step)
+		// note: if the user has never been in any conferences, this won't execute and no conferences will be added to mSkypeConferences
 		skypeConferences_t::iterator skypeConferences_it;
 		while( sqlite3_step( pStmt ) == SQLITE_ROW ){
 			// grab columns in current row
@@ -120,37 +121,41 @@ namespace SkypeParser
 
 		/* Conferences: Phase 2 (Participants) */
 
-		// construct a statement containing the IDs for every conference we've discovered (the Participants table contains an accurate, clean list of every skypeID that was ever added to that conference, no matter how they were added and whether they said something or not, so it's perfect for our needs)
-		std::stringstream confParticipantQuery( std::stringstream::in | std::stringstream::out );
-		confParticipantQuery << "SELECT DISTINCT convo_id, identity FROM Participants WHERE ("; // the DISTINCT is there for safety; I've never seen duplicates but don't wanna risk it.
-		for( skypeConferences_t::const_iterator it( mSkypeConferences.begin() ); it != mSkypeConferences.end(); ++it ){
-			confParticipantQuery << "convo_id='" << (*it).first << "'";
-			if( boost::next( it ) != mSkypeConferences.end() ){ confParticipantQuery << " OR "; } // appended after every element except the last one
-		}
-		confParticipantQuery << ")";
-		
-		// prepare statement to get the participants for all encountered conferences
-		rc = sqlite3_prepare_v2( mDB, confParticipantQuery.str().c_str(), -1, &pStmt, NULL );
-		if( rc != SQLITE_OK ){
-			sqlite3_finalize( pStmt );
-			throw std::runtime_error( sqlite3_errmsg( mDB ) );
-		}
-
-		// iterate through all participants and store them under their given conferences
-		while( sqlite3_step( pStmt ) == SQLITE_ROW ){
-			// grab columns in current row
-			int32_t convoID = sqlite3_column_int( pStmt, 0 ); // convo_id
-			std::string participantSkypeID = reinterpret_cast<const char *>( sqlite3_column_text( pStmt, 1 ) ); // identity
-
-			// look up the conference and insert this participant
-			skypeConferences_it = mSkypeConferences.find( convoID );
-			if( skypeConferences_it != mSkypeConferences.end() ){ // conference known
-				(*skypeConferences_it).second.participants.push_back( participantSkypeID );
+		// only perform this step if the conference scan actually found any conferences in the database
+		// note: this extra verification fixes the error where people who have never been in any conferences got an error saying "syntax error near ")"", since it was building a "WHERE ()" statement without any conditions in that case. besides, there's no participants to look up if they haven't got any conferences, so no need to run this code for those users! ;-)
+		if( !mSkypeConferences.empty() ){
+			// construct a statement containing the IDs for every conference we've discovered (the Participants table contains an accurate, clean list of every skypeID that was ever added to that conference, no matter how they were added and whether they said something or not, so it's perfect for our needs)
+			std::stringstream confParticipantQuery( std::stringstream::in | std::stringstream::out );
+			confParticipantQuery << "SELECT DISTINCT convo_id, identity FROM Participants WHERE ("; // the DISTINCT is there for safety; I've never seen duplicates but don't wanna risk it.
+			for( skypeConferences_t::const_iterator it( mSkypeConferences.begin() ); it != mSkypeConferences.end(); ++it ){
+				confParticipantQuery << "convo_id='" << (*it).first << "'";
+				if( boost::next( it ) != mSkypeConferences.end() ){ confParticipantQuery << " OR "; } // appended after every element except the last one
 			}
+			confParticipantQuery << ")";
+			
+			// prepare statement to get the participants for all encountered conferences
+			rc = sqlite3_prepare_v2( mDB, confParticipantQuery.str().c_str(), -1, &pStmt, NULL );
+			if( rc != SQLITE_OK ){
+				sqlite3_finalize( pStmt );
+				throw std::runtime_error( sqlite3_errmsg( mDB ) );
+			}
+	
+			// iterate through all participants and store them under their given conferences
+			while( sqlite3_step( pStmt ) == SQLITE_ROW ){
+				// grab columns in current row
+				int32_t convoID = sqlite3_column_int( pStmt, 0 ); // convo_id
+				std::string participantSkypeID = reinterpret_cast<const char *>( sqlite3_column_text( pStmt, 1 ) ); // identity
+	
+				// look up the conference and insert this participant
+				skypeConferences_it = mSkypeConferences.find( convoID );
+				if( skypeConferences_it != mSkypeConferences.end() ){ // conference known
+					(*skypeConferences_it).second.participants.push_back( participantSkypeID );
+				}
+			}
+	
+			// free up statement
+			sqlite3_finalize( pStmt );
 		}
-
-		// free up statement
-		sqlite3_finalize( pStmt );
 
 
 		// all initializations ok!

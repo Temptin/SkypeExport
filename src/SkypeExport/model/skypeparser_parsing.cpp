@@ -25,7 +25,7 @@ namespace SkypeParser
 		// grab the main conversation history for the person
 		xhtmlFileWriter	<< getHistoryAsXHTML( (void *)skypeID.c_str(), false ) << "\n";
 
-		// output all conferences the person took part in
+		// output all conferences the person took part in (if any)
 		std::vector<int32_t> confs = getConferencesForSkypeID( skypeID );
 		for( size_t i=0, len=confs.size(); i < len; ++i ){
 			xhtmlFileWriter	<< getHistoryAsXHTML( (void *)&confs[i], true ) << "\n";
