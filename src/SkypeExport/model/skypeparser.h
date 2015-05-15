@@ -14,7 +14,7 @@
 #include <vector>
 #include <list>
 #include <boost/filesystem.hpp> // provides cross-platform path handling
-namespace fs = boost::filesystem3;
+namespace fs = boost::filesystem;
 #include <time.h> // provides timestamp conversion and clock timing
 #include <stdint.h>
 #include <cstring> // provides memcpy()
