@@ -27,6 +27,10 @@ Supports all features of the Skype protocol thanks to careful reverse-engineerin
 * It even outputs the complete history for people you have long-since deleted from your contact list!
 * ...and much more (actually, that's all the major stuff, so not that much more ;)).
 
+## Binaries
+
+* You can find pre-compiled binaries for your platform at: https://github.com/Temptin/SkypeExport/releases
+
 ## Compiling
 
 * Windows compilation is done using Visual Studio or the compiler of your choice.
