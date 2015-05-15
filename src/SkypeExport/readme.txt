@@ -29,7 +29,7 @@ BROKEN IN OLD-AS-HELL BROWSERS: Firefox 2 and earlier renders the page passably 
 
 
 TO BUILD:
-On Windows, make sure your compiler has the Boost 1.47 (or higher) headers and pre-compiled libraries in the include paths for the compiler and linker (the included MSVC2010 project is suggested). For ease of use, you can install all pre-built libraries using BoostPro.
+On Windows, make sure your compiler has the Boost 1.58 (or higher) headers and pre-compiled libraries in the include paths for the compiler and linker (the included MSVC2010 project is suggested). For ease of use, you can install all pre-built libraries using BoostPro.
 On Mac OS X, look in the _gccbuild folder and read the text document, then issue the build script.
 On Linux, it will be very similar to the OS X build, but possibly needing a different build script (not provided).
 SQLite3 is also required, but is bundled with the project.
