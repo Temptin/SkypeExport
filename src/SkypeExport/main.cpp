@@ -81,18 +81,18 @@ int main( int argc, char **argv )
 		SkypeParser::CSkypeParser sp( dbPath.string() );
 		
 		// display all options (input database, output path, and all names to output (if specified))
-		std::cout	<< "Skype History Exporter v0.91 Beta\n"
-					<< "  DATABASE: [ " << dbPath << " ]\n"
-					<< "    OUTPUT: [ " << outPath << " ]\n";
+		std::cout << "Skype History Exporter v0.91 Beta\n"
+		          << "  DATABASE: [ " << dbPath << " ]\n"
+		          << "    OUTPUT: [ " << outPath << " ]\n";
 		if( outputContacts.size() > 0 ){
-			std::cout	<< "  CONTACTS: [ \"";
+			std::cout << "  CONTACTS: [ \"";
 			for( std::map<std::string,bool>::const_iterator it( outputContacts.begin() ); it != outputContacts.end(); ++it ){
 				std::cout << (*it).first;
 				if( boost::next( it ) != outputContacts.end() ){ std::cout << "\", \""; } // appended after every element except the last one
 			}
-			std::cout	<< "\" ]\n\n";
+			std::cout << "\" ]\n\n";
 		}else{
-			std::cout	<< "  CONTACTS: [ \"*\" ]\n\n";
+			std::cout << "  CONTACTS: [ \"*\" ]\n\n";
 		}
 
 		// grab a list of all contacts encountered in the database

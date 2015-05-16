@@ -1,0 +1,15 @@
+Name: test.acc2001
+Password: Test2001
+
+Name: test.acc2002
+Password: Test2002
+
+Name: test.acc2003
+Password: Test2003
+
+Name: test.acc2004
+Password: Test2004
+
+Run multiple Skype clients:
+"C:\Program Files\Skype\Phone\Skype.exe" /secondary
+"C:\Program Files (x86)\Skype\Phone\Skype.exe" /secondary

@@ -10,30 +10,30 @@ namespace SkypeParser
 		if( !xhtmlFileWriter ){ throw std::ios::failure( "error opening html file for writing" ); }
 		
 		// page header
-		xhtmlFileWriter	<< "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n"
-						<< "<html>\n"
-						<< "	<head>\n"
-						<< "		<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n"
-						<< "		<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\" /> <!-- tells IE to use standards-compliant mode and the newest engine -->\n"
-						<< "		<title>Skype History for " << getDisplayNameAtTime( skypeID, -1 ) << "</title>\n" // puts the person's latest displayname in the page title FIXME: verify that Skype has already escaped < > in the database (as &lt; and &gt;), otherwise we must do this replacement manually; this ALSO applies for ALL other places that the displayname is output
-						<< "		<style type=\"text/css\">\n"
-						<< "			" << style_compact_data_css << "\n"
-						<< "		</style>\n"
-						<< "	</head>\n"
-						<< "	<body>\n";
+		xhtmlFileWriter << "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n"
+		                << "<html>\n"
+		                << "	<head>\n"
+		                << "		<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n"
+		                << "		<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\" /> <!-- tells IE to use standards-compliant mode and the newest engine -->\n"
+		                << "		<title>Skype History for " << getDisplayNameAtTime( skypeID, -1 ) << "</title>\n" // puts the person's latest displayname in the page title FIXME: verify that Skype has already escaped < > in the database (as &lt; and &gt;), otherwise we must do this replacement manually; this ALSO applies for ALL other places that the displayname is output
+		                << "		<style type=\"text/css\">\n"
+		                << "			" << style_compact_data_css << "\n"
+		                << "		</style>\n"
+		                << "	</head>\n"
+		                << "	<body>\n";
 
 		// grab the main conversation history for the person
-		xhtmlFileWriter	<< getHistoryAsXHTML( (void *)skypeID.c_str(), false ) << "\n";
+		xhtmlFileWriter << getHistoryAsXHTML( (void *)skypeID.c_str(), false ) << "\n";
 
 		// output all conferences the person took part in (if any)
 		std::vector<int32_t> confs = getConferencesForSkypeID( skypeID );
 		for( size_t i=0, len=confs.size(); i < len; ++i ){
-			xhtmlFileWriter	<< getHistoryAsXHTML( (void *)&confs[i], true ) << "\n";
+			xhtmlFileWriter << getHistoryAsXHTML( (void *)&confs[i], true ) << "\n";
 		}
 
 		// page footer
-		xhtmlFileWriter	<< "	</body>\n"
-						<< "</html>";
+		xhtmlFileWriter << "	</body>\n"
+		                << "</html>";
 
 		// any errors?
 		if( !xhtmlFileWriter.good() ){ throw std::ios::failure( "error while writing to html file" ); }
@@ -227,7 +227,9 @@ namespace SkypeParser
 		std::stringstream xhtmlOutput( std::stringstream::in | std::stringstream::out ); // holds the xhtml as it's being constructed
 
 
-		// prepare search variables; conference: partnerid="", convoID=id of conference; otherwise (1on1): partnerid="person we're exporting", convoID=0.
+		// prepare search variables; arguments depend on how this function was called.
+		// conference: partnerid="" (we won't use it in any queries), convoID=id of conference.
+		// otherwise (1on1): partnerid="person we're exporting", convoID=0. (we will set it to the exact convoID further down)
 		std::string partnerID = ( isConference ? "" : reinterpret_cast<const char *>( searchValue ) );
 		int32_t convoID = ( isConference ? *(reinterpret_cast<int32_t *>( searchValue )) : 0 );
 
@@ -267,19 +269,19 @@ namespace SkypeParser
 		// Header NOTE: There are conditions in so many places that the repetition cannot be helped, as ternary would be really messy.
 		time_t exportTime = time( NULL ); // grabs the current unix timestamp (UTC seconds since January 1st, 1970). we will use this for the header date/time.
 		if( !isConference ){ // regular chat
-			xhtmlOutput	<< "<div class=\"ChatHistory\">\n" // starts the main log-container for this person
-						<< "	<div class=\"HistoryHeader\">\n" // starts the history-header which has some brief info about the generated log
-						<< "		<div class=\"SkypeLogo\"></div>\n" // the Skype logo
-						<< "		<div class=\"LogHeaderLine1\">Chat History with <a href=\"skype:" << partnerID << "\">" << getDisplayNameAtTime( partnerID, -1 ) << " (" << partnerID << ")</a></div>\n" // clickable name for the person whose history you're exporting (always use the absolute latest displayname for the header)
-						<< "		<div class=\"LogHeaderLine2\">Created on " << formatTime( localtime( &exportTime ), 0 ) << " at " << formatTime( localtime( &exportTime ), 1 ) << ".</div>\n" // the log creation date // FIXME: it would be NICE adding a sentence "All times are in UTC+1" (including any active DST at the time of log generation), maybe add that later...
-						<< "	</div>\n"; // closes the history-header
+			xhtmlOutput << "<div class=\"ChatHistory\">\n" // starts the main log-container for this person
+			            << "	<div class=\"HistoryHeader\">\n" // starts the history-header which has some brief info about the generated log
+			            << "		<div class=\"SkypeLogo\"></div>\n" // the Skype logo
+			            << "		<div class=\"LogHeaderLine1\">Chat History with <a href=\"skype:" << partnerID << "\">" << getDisplayNameAtTime( partnerID, -1 ) << " (" << partnerID << ")</a></div>\n" // clickable name for the person whose history you're exporting (always use the absolute latest displayname for the header)
+			            << "		<div class=\"LogHeaderLine2\">Created on " << formatTime( localtime( &exportTime ), 0 ) << " at " << formatTime( localtime( &exportTime ), 1 ) << ".</div>\n" // the log creation date // FIXME: it would be NICE adding a sentence "All times are in UTC+1" (including any active DST at the time of log generation), maybe add that later...
+			            << "	</div>\n"; // closes the history-header
 		}else{ // conference
-			xhtmlOutput	<< "<div id=\"conf_" << convoID << "\" class=\"ChatHistory ConferenceHistory\">\n" // starts the main log-container for this conference (contains anchor-ID)
-						<< "	<div class=\"HistoryHeader\">\n" // starts the history-header which has some brief info about the generated log
-						<< "		<div class=\"SkypeLogo\"></div>\n" // the Skype Conference logo
-						<< "		<div class=\"LogHeaderLine1\">Conference History for \"" << getConferenceTitle( convoID ) << "\"</div>\n" // title of the conference room, grabbed from the database
-						<< "		<div class=\"LogHeaderLine2\">Created on " << formatTime( localtime( &exportTime ), 0 ) << " at " << formatTime( localtime( &exportTime ), 1 ) << ".</div>\n" // the log creation date // FIXME: it would be NICE adding a sentence "All times are in UTC+1" (including any active DST at the time of log generation), maybe add that later...
-						<< "	</div>\n"; // closes the history-header
+			xhtmlOutput << "<div id=\"conf_" << convoID << "\" class=\"ChatHistory ConferenceHistory\">\n" // starts the main log-container for this conference (contains anchor-ID)
+			            << "	<div class=\"HistoryHeader\">\n" // starts the history-header which has some brief info about the generated log
+			            << "		<div class=\"SkypeLogo\"></div>\n" // the Skype Conference logo
+			            << "		<div class=\"LogHeaderLine1\">Conference History for \"" << getConferenceTitle( convoID ) << "\"</div>\n" // title of the conference room, grabbed from the database
+			            << "		<div class=\"LogHeaderLine2\">Created on " << formatTime( localtime( &exportTime ), 0 ) << " at " << formatTime( localtime( &exportTime ), 1 ) << ".</div>\n" // the log creation date // FIXME: it would be NICE adding a sentence "All times are in UTC+1" (including any active DST at the time of log generation), maybe add that later...
+			            << "	</div>\n"; // closes the history-header
 		}
 
 
@@ -288,15 +290,64 @@ namespace SkypeParser
 		clock_start = clock();
 
 
+		// If this is a 1on1 chat, we first need to figure out the permanent convo_id for the conversation with that person
+		if( !isConference ){
+			// prepare statement
+			rc = sqlite3_prepare_v2( mDB, "SELECT id FROM Conversations WHERE (identity=? AND type=1) LIMIT 1", -1, &pStmt, NULL ); // note: type 1 is regular 1on1 conversation and type 2 is conference; and we actually don't even need to limit the statement since there will only ever be one match for this particular query
+			if( rc != SQLITE_OK ){
+				sqlite3_finalize( pStmt );
+				throw std::runtime_error( sqlite3_errmsg( mDB ) );
+			}
+			
+			// bind the partner id to the statement
+			sqlite3_bind_text( pStmt, 1, partnerID.c_str(), -1, SQLITE_TRANSIENT ); // we use SQLITE_TRANSIENT to tell SQLite to make its own private copy of the string, so that we won't have to worry about the data being freed before SQLite is done with it.
+			
+			// grab the convo_id for the 1on1 conversation with this person
+			if( sqlite3_step( pStmt ) == SQLITE_ROW ){
+				// grab column in result row
+				convoID = sqlite3_column_int( pStmt, 0 ); // convo_id of the main 1on1 conversation with that person
+			}else{
+				sqlite3_finalize( pStmt );
+				throw std::runtime_error( "unable to locate Conversation ID in database" );
+			}
+			
+			// free up statement
+			sqlite3_finalize( pStmt );
+		}
+
+
 		// Grab Messages
 		// build conference or 1on1 query
-		std::string logQuery = "SELECT type, chatmsg_status, author, from_dispname, body_xml, timestamp, edited_timestamp, guid, convo_id, identities FROM Messages WHERE ";
+		std::string logQuery = "SELECT type, chatmsg_status, author, from_dispname, body_xml, timestamp, edited_timestamp, guid, convo_id, identities FROM Messages WHERE (";
 		if( !isConference ){
-			logQuery.append("dialog_partner=?"); // grabs all messages and status nodes to/from the person with the given skypeid.
+			// OLD QUERY:
+			//logQuery.append("dialog_partner=?"); // grabs all messages and status nodes to/from the person with the given skypeid.
+			
+			// There's new bug in Skype 6 (and higher) which randomly, and very rarely, causes the dialog_partner value to be saved as NULL
+			// for some messages. That means that they wouldn't be discovered when exporting the main chat history for that person. However,
+			// we can't simply scan by "convo_id" instead since that would miss all conference creation events since those are stored within
+			// the new convo_id of the created conference. So the solution is to scan on both convo_id OR type=10 ("person added to conference"),
+			// and then do extra validation of type10 events to see if they have anything to do with the 1on1 conversation we're currently exporting.
+			logQuery.append(
+				// the convo_id search only grabs the regular 1on1 messages/events...
+				"convo_id=? OR " // ?1: the main conversation id
+				// ..."people added to conference" events (type 10) must be scanned for separately, since their convo_id is the conference's id instead
+				// we must be very careful here, so that we only grab type10 events if they're related to the current 1on1 person
+				"(type=10 AND ("
+					/* if our 1on1 chat partner sent the conference invite, and we are in the list of people they invited: */
+					// NOTE: Skype itself doesn't display this case! they only show outgoing creations (when we invited), so this is a nice bonus!
+					"( author=? AND ((' '||identities||' ') LIKE '% '||?||' %') )" // ?2: their name, ?3: our name
+					" OR "
+					/* if we sent the conference invite (status 1/2 = outgoing message), and our 1on1 chat partner was in the list of invitees: */
+					"( (chatmsg_status=1 OR chatmsg_status=2) AND ((' '||identities||' ') LIKE '% '||?||' %') )" // ?4: their name
+				"))"
+			);
 		}else{
+			// Conferences are not affected by the Skype 6+ bug above, as we're grabbing them entirely by their convo_id since that's all
+			// that a conference is! (In other words, a conference is "just" a new convo-id for 3 or more people to talk in.)
 			logQuery.append("convo_id=?"); // grabs all messages and status nodes to/from the given conference chat.
 		}
-		logQuery.append(" ORDER BY timestamp ASC");
+		logQuery.append(") ORDER BY timestamp ASC");
 		// prepare statement
 		rc = sqlite3_prepare_v2( mDB, logQuery.c_str(), -1, &pStmt, NULL );
 		if( rc != SQLITE_OK ){
@@ -305,7 +356,12 @@ namespace SkypeParser
 		}
 		// bind the appropriate variable based on search type
 		if( !isConference ){
-			sqlite3_bind_text( pStmt, 1, partnerID.c_str(), -1, SQLITE_TRANSIENT ); // we use SQLITE_TRANSIENT to tell SQLite to make its own private copy of the string, so that we won't have to worry about the data being freed before SQLite is done with it.
+			sqlite3_bind_int( pStmt, 1, convoID ); // ?1: the main conversation id // convoID is a 32 bit integer on all systems, so just bind it as-is using sqlite's 32 bit int bind function.
+			
+			// bind their/our names in the various locations required for the type=10 search statement above
+			sqlite3_bind_text( pStmt, 2, partnerID.c_str(), -1, SQLITE_TRANSIENT ); // ?2: their name // we use SQLITE_TRANSIENT to tell SQLite to make its own private copy of the string, so that we won't have to worry about the data being freed before SQLite is done with it.
+			sqlite3_bind_text( pStmt, 3, mMySkypeID.c_str(), -1, SQLITE_TRANSIENT ); // ?3: our name
+			sqlite3_bind_text( pStmt, 4, partnerID.c_str(), -1, SQLITE_TRANSIENT ); // ?4: their name
 		}else{
 			sqlite3_bind_int( pStmt, 1, convoID ); // convoID is a 32 bit integer on all systems, so just bind it as-is using sqlite's 32 bit int bind function.
 		}
@@ -428,13 +484,13 @@ namespace SkypeParser
 							duration (integer): the call duration in seconds if picked up, otherwise null
 							(NOT USED) is_incoming (integer): 1 if true 0 if false. useless since we only need it for the call start event and for that we can just look at the event direction to know whether it's incoming or outgoing.
 							(NOT USED) is_conference (integer): 1 if true, null otherwise
-					type:10=person added to group conference; if you were the one that created the conference then the dialog_partner will be the person you were chatting with when you pressed the "add to conference" button, and the convo_id will be the conference ID. if someone ELSE adds you, the convo_id is 0 (except possibly re-used IDs on re-used conferences) and dialog_partner is null. "participant_count" is the number of people in the conference (this number will keep rising as more people are added, and lowering as people leave). when you first join a conference CREATED BY SOMEONE ELSE, an event type "100" is also fired, with an identities field like "coolguy123 otherguy123 grince.farbgold", in other words a space-separated list of all current participants (any people that you don't have on your contact list is added to your Contacts table, with is_permanent=0 to signal that you have not added them to your permanent contacts, but that their data is available for use i.e. getting their displaynames). after that, it's up to you to keep track of joins/leaves/participant counts via events types 13 and 10.
+					type:10=person added to group conference; if you were the one who created the conference then the chatmsg_status will be 1 or 2 (outgoing) and the people you added will be in the space-separated "identities" field, and the convo_id will be the conference ID (meaning that it will NOT be the current 1on1 convo_id, so you MUST find type10 events separately). if someone ELSE adds you, the convo_id is the conference ID, the "author" is their skypeid, and YOU are in the "identities" field. any people that you don't have on your contact list are added to your Contacts table, with is_permanent=0 to signal that you have not added them to your permanent contacts, but that their data is available for use i.e. getting their displaynames. after that, it's up to you to keep track of joins/leaves/participant counts via event types 13 and 10. [[NOTE ABOUT LEGACY VERSIONS OF SKYPE (5 or earlier, possibly 4 and earlier), WHERE FEATURES DIFFER AND WROTE OTHER VALUES WHICH SHOULD NOT BE RELIED ON: when people add you, convo_id is 0 (except possibly re-used IDs on re-used conferences). "participant_count" is the number of people in the conference (this number will keep rising as more people are added, and lowering as people leave); but in modern versions of Skype 6+ this value is just NULL at all times so it can't be used. when you first joined a conference CREATED BY SOMEONE ELSE, an event type "100" WAS also fired (but this no longer happens in Skype 6+), with an identities field like "coolguy123 otherguy123 grince.farbgold", in other words a space-separated list of all current participants.]]
 						chatmsg_type:1 (always, apparently)
 							chatmsg_status:as usual this means the direction (incoming/outgoing) of the event
-								* parsing strategy: parse history for dialog_partner, and at the first sign of type:10 you grab the new convo_id and store it in an array as "conferences started by us", then look up the associated displayname (in the Conversations table) for that conference, and output a chat link saying "from_dispname (our name) started a conference: name of conference". later, after you have parsed the log, you grab any missing conference ids and then finally loop through your "convo_id" (conference) arrays and output those too at the end of the document, with appropriate "<div id=conf_74327>" tags to allow the above conference links to work.
-								* also NOTE: the initial event that started the conference is ONLY logged for the person you were chatting with at the time and ONLY IF *YOU* CREATED THE CONFERENCE, NOT for any of the people that were added to the conference, and NOT if THEY invited YOU, so you will not see conference links for those people when viewing their logs; you only ever see links when YOU created the conference, and ONLY for the one person you were chatting with at the time you pressed the "+add people" button.
-								* we will not be parsing event 100 (the "people in the conference" sync event), because we don't care who is already in the conference.
-								* the "identities" field for event type 10 is USUALLY *one* name because of how people use it (when YOU *and other people* become invited to a conference, meaning when some third party selects you and a bunch of others ot make a conference, then you will get a type 10 with JUST your name in it, and a type 100 with the other names. also, when someone adds JUST ONE person to the conference, you get 1 identity. the trouble happens when someone adds 2+ people after the conference started, OR when *YOU* start the conference with multiple people selected. in those cases, the identities field will have as many space-separated SkypeIDs as needed.
+								* parsing strategy: in conference mode, just display a "X has joined the conference" message as usual; but in 1on1 mode, you must parse Messages for ALL type10 events REGARDLESS of convo_id, and check the author/identities/chatmsg_status fields to determine if this is related to your current 1on1 partner.
+								* LEGACY NOTE (no longer true as of Skype 6+, since they've stopped storing a "type100: these people are in the conference" sync event in the database, and instead made type10 reliable even for incoming invites, so this note no longer applies!): the initial type10 event that started the conference is ONLY logged with the name of the person you were chatting with at the time and ONLY IF *YOU* CREATED THE CONFERENCE, NOT for any of the other people that were added to the conference, and NOT if THEY invited YOU, so you will not see conference links for those people when viewing their logs; you only ever see links when YOU created the conference, and ONLY for the one person you were chatting with at the time you pressed the "+add people" button.
+								* LEGACY NOTE (no longer matters, since the event has been removed, and we never needed it anyway): we will not be parsing event 100 (the "people in the conference" sync event), because we don't care who is already in the conference.
+								* LEGACY NOTE (this behavior has changed; I think the type10 identities now lists everybody in the conference at the time you were invited; I haven't investigated enough since it doesn't matter; what matters is that we now get type10 events at all times which allows us to effortlessly detect when conferences begin): the "identities" field for event type 10 is USUALLY *one* name because of how people use it (when YOU *and other people* become invited to a conference, meaning when some third party selects you and a bunch of others ot make a conference, then you will get a type 10 with JUST your name in it, and a type 100 with the other names. also, when someone adds JUST ONE person to the conference, you get 1 identity. the trouble happens when someone adds 2+ people after the conference started, OR when *YOU* start the conference with multiple people selected. in those cases, the identities field will have as many space-separated SkypeIDs as needed.
 					type:13=person left the conference.
 						chatmsg_type:4 (always, apparently)
 							chatmsg_status:as usual this means the direction (incoming/outgoing) of the event; if it is incoming then someone else left, and if it is outgoing then you left.
@@ -452,13 +508,13 @@ namespace SkypeParser
 				
 				edited_timestamp (integer): null most of the time, but when it contains a value it gives the time of the last edit to the message
 				
-				(NOT USED) dialog_partner (text): the name of the person you are chatting with in single-person chats. always has the same value even when THEY send YOU a message. example: "andy.norin". this value is null in multiperson chats (conferences), apart from the very first message in a conference where it seems to denote the person you were chatting with when the conference was created.
+				(NOT USED) dialog_partner (text): the exact, permanent username/loginname (NOT their pretty "full display name") of the person you are chatting with in single-person chats. always has the same value even when THEY send YOU a message. example: "andy.norin". this value is null in multiperson chats (conferences), apart from the very first message in a conference where it seems to denote the person you were chatting with when the conference was created. NOTE: There is a bug in Skype 6 (or higher) which sometimes stores a NULL instead of the proper dialog_partner into the database, which means that it's no longer reliable to use this field for ANYTHING. We've switched to convo_id scanning instead, with a special exception to also catch Type10 ("added to conference") events.
 				
 				guid (blob): this is a globally unique identifier for the message. we only need it when parsing filetransfer data, as the filetransfer information is stored under this guid.
 				
 				(NOT USED) call_guid (text): this is the call globally unique identifier, used for identifying individual calls' start and end events. only contains any data for event types 30+39. WARNING: call_guid is null for VERY OLD calls performed in Skype versions older than 5, so we cannot use it!
 				
-				convo_id (integer): this is the unique identifier for your dialog partner combination; it is permanent (the same whenever you talk to the same partner). also, whenever you create a conference chat (more than 2 people), it generates a new convo_id. The "Conversations" table contains mappings for id -> partner's "identity" (skypeID) and other info. we'll mainly be using convo_id to correlate calls in the Calls table. LONG NOTE: However, you should NOT use convo_id to "locate all events between you and that person"; use dialog_partner for that, because otherwise you will be lacking some events, primarily (or only? it is the only missing one I have observed) event type 10 aka the creation of a new group conference chat (by inviting more chat partners), as that event will still have a dialog_partner that's the same as the person you were chatting with, but the convo_id will be new (the new convo id for that new group conference, to be precise) - note that this is useful info if you want to parse group convos too, simply store all eventtype 10 convo ids and then parse those too; the first event of a group conference has the dialog_partner you were with when the group conference was started, and the remaining ones have a null value for dialog_partner.
+				convo_id (integer): this is the unique identifier for your dialog partner combination; it is permanent (the same whenever you talk to the same partner). also, whenever you create a conference chat (more than 2 people), it generates a new convo_id. The "Conversations" table contains mappings for id -> partner's "identity" (skypeID) and other info (and its "type" column means 1=1on1, 2=conference). we are using convo_id to grab all messages from our 1on1 conversations and conferences, as well as to correlate calls in the Calls table. WARNING: the convo_id of type10 ("added to conference") events will NOT be the 1on1 id; it will be the CONFERENCE's id. so the solution for finding "conference created" events during 1on1 scanning is to ALSO scan for ALL type10 events and then narrowing them down by ensuring that they were either sent from you to the 1on1 partner, or from the 1on1 partner to you. this is achieved with the advanced SQL statement in the "grab messages" code above.
 				
 				identities (text): this is NULL for EVERY event type EXCEPT a handful. when it's NOT null, it is a space-separated list of one or more skypeIDs of the people that are taking part of that event. here are the eventtypes where it is used: 110 (unknown event). 100: conference sync event (contains list of existing conference participants, seems to only be sent out when you are added to someone else's conference). 51 (unknown event, almost 100% sure it is for accepted friend request). 50 (friend request; status 2/4 indicates direction). 39 (call start, contains list of people called; one in 1on1, one or more in conference). 30 (call end; value similar to call start, except it may possibly contain early dropouts as single identities entries, until finally everyone has dropped out; OR perhaps it just indicates when YOU hung up and the people that were also in that call, even people that dropped out earlier? FIXME: test that? or not give a shit? I prefer NOT GIVE A SHIT, but someone else is free to investigate!). 10 (conference join event; identities contains the list of people that were added, usually just one but will be several if more than one person is added at a time). oddly enough event 13 (conference leave event) does NOT use identities, instead the "author"/"from_dispname" is the person that left (which can be yourself, just use chatmsg_status to judge direction to see if it was you that left)
 			*/
@@ -483,8 +539,8 @@ namespace SkypeParser
 						if( parserState.chunkState != 0 ){ xhtmlOutput << "			</div>\n		</div>\n"; parserState.chunkState = 0; } // close the previous <div class="MC"> message-chunk container if one is open; this will also notify the chunk-output code below that it needs to create a new message chunk due to end of day
 						if( parserState.activeDay.tm_year != 0 ) xhtmlOutput << "	</div>\n"; // close the previous <div class="DayContainer">, unless activeDay.tm_year is 0 (meaning this day is the first one we're outputting for the current log, in which case there is nothing to close yet)
 						parserState.activeDay = thisEvent.timestamp_tm; // store the active day to prepare for detecting the next day, by doing a member-to-member copy of the current row's tm structure into our activeDay structure; we only care about updating the tm_mday, tm_mon and tm_year fields, but it's neater to just copy the whole thing.
-						xhtmlOutput	<< "	<div class=\"DayHeader\">" << formatTime(&parserState.activeDay, 0) << "</div>\n" // output day-marker; date is formatted as "July 8th, 2010"
-									<< "	<div class=\"DayContainer\">\n"; // begin a message container for this day
+						xhtmlOutput << "	<div class=\"DayHeader\">" << formatTime(&parserState.activeDay, 0) << "</div>\n" // output day-marker; date is formatted as "July 8th, 2010"
+						            << "	<div class=\"DayContainer\">\n"; // begin a message container for this day
 				}
 				
 
@@ -520,9 +576,9 @@ namespace SkypeParser
 					if( parserState.chunkState != 0 ){ xhtmlOutput << "			</div>\n		</div>\n"; parserState.chunkState = 0; } // close the previous <div class="MC"> message-chunk container if one is open
 					
 					parserState.chunkState = thisEvent.direction; // store the active chunk direction
-					xhtmlOutput	<< "		<div class=\"MC S" << ( parserState.chunkState == 2 ? "O" : "I" ) << "\">\n" // begin the new message chunk, with the current direction (status) as an appended class
-								<< "			<div class=\"A\">" << thisEvent.row_from_dispname << "</div>\n" // author of the message-chunk
-								<< "			<div class=\"C\">\n"; // container for holding all the messages in this message-chunk
+					xhtmlOutput << "		<div class=\"MC S" << ( parserState.chunkState == 2 ? "O" : "I" ) << "\">\n" // begin the new message chunk, with the current direction (status) as an appended class
+					            << "			<div class=\"A\">" << thisEvent.row_from_dispname << "</div>\n" // author of the message-chunk
+					            << "			<div class=\"C\">\n"; // container for holding all the messages in this message-chunk
 				}
 
 
@@ -624,11 +680,11 @@ namespace SkypeParser
 							}
 
 							// generate the XHTML-line for the file and append the file's information to the XHTML line storage
-							fileInfoXHTML	<< "<div class=\"t68_f\">" << ( fileInfo.status == 8 ? "<div class=\"icons ft_ok\"><span>OK</span></div>" : "<div class=\"icons ft_failed\"><span>FAILED</span></div>" ) << " " << fileInfo.filename << " (" << formatBytes( fileInfo.filesize, false ) << ")";
+							fileInfoXHTML << "<div class=\"t68_f\">" << ( fileInfo.status == 8 ? "<div class=\"icons ft_ok\"><span>OK</span></div>" : "<div class=\"icons ft_failed\"><span>FAILED</span></div>" ) << " " << fileInfo.filename << " (" << formatBytes( fileInfo.filesize, false ) << ")";
 							if( isConference && thisEvent.direction == 2 ){ // outgoing transfers in conferences can have more than one recipient, so we output the recipient name after the file name in that case
-							fileInfoXHTML	<< " to " << fileInfo.partner_dispname;
+							fileInfoXHTML << " to " << fileInfo.partner_dispname;
 							}
-							fileInfoXHTML	<< "</div>";
+							fileInfoXHTML << "</div>";
 						}
 
 						// generate the count/size summary ("X files (18.34 MB)")
@@ -692,8 +748,14 @@ namespace SkypeParser
 					} // end of type30 and type39 (call start/call end) parsing
 				case 10: // person(s) added to conference; can be you or can be others
 					if( !isConference ){ // regular chats
-						// if we see this event and isConference is false then it MEANS *WE* created it, because that is the ONLY time a type10 event occurs with a dialog_partner of the person you're talking to.
-						thisEvent.asXHTML << thisEvent.row_from_dispname << " created a separate conference \"<a href=\"#conf_" << thisEvent.row_convo_id << "\">" << getConferenceTitle( thisEvent.row_convo_id ) << "</a>\".";
+						// NOTE: For 1on1 chats, the convo_id of these events is actually the id of the new conference instead of the 1on1 chat, so be aware of that!
+						
+						// NOTE: Skype itself ONLY shows outgoing creations (when WE invited the 1on1 partner to a conference), but here we also show when our 1on1 person invites us to a conference, which is a very, very nice bonus!
+						if( thisEvent.direction == 2 ){ // OUTGOING: When we add our 1on1 partner to a conference
+							thisEvent.asXHTML << "You added " << lastDialogPartner.dispName << " to a group conversation \"<a href=\"#conf_" << thisEvent.row_convo_id << "\">" << getConferenceTitle( thisEvent.row_convo_id ) << "</a>\".";
+						}else{ // INCOMING: When our 1on1 partner added us to a conference
+							thisEvent.asXHTML << thisEvent.row_from_dispname << " added you to a group conversation \"<a href=\"#conf_" << thisEvent.row_convo_id << "\">" << getConferenceTitle( thisEvent.row_convo_id ) << "</a>\".";
+						}
 					}else{ // conferences
 						// thisEvent.row_author/thisEvent.row_from_dispname = the person that added others.
 						thisEvent.asXHTML << thisEvent.row_from_dispname << " added ";
@@ -721,14 +783,14 @@ namespace SkypeParser
 
 
 				// Output the message
-				xhtmlOutput	<< "				<div class=\"E t" << thisEvent.row_type << "\">"
-							<< "<div class=\"M\">" << thisEvent.asXHTML.str() << "</div>"; // the formatted message body for the event
+				xhtmlOutput << "				<div class=\"E t" << thisEvent.row_type << "\">"
+				            << "<div class=\"M\">" << thisEvent.asXHTML.str() << "</div>"; // the formatted message body for the event
 				if( thisEvent.row_chatmsg_status == 1 ){ // if this is a pending (outgoing) message, show it as pending
-				xhtmlOutput	<< "<div class=\"T\">Pending</div>";
+				xhtmlOutput << "<div class=\"T\">Pending</div>";
 				}else{ // otherwise show the original timestamp including edited/pending state (event timestamp is formatted as "8:05:07 AM")
-				xhtmlOutput	<< "<div class=\"T\">" << ( thisEvent.row_edited_timestamp != 0 ? "<div class=\"icons msg_edit\"><span>Edited</span></div> " : "" ) << formatTime( &thisEvent.timestamp_tm, 1 ) << "</div>"; // row_edited_timestamp is NULL (int 0) when no edit has taken place, as the sqlite3_column_int64() function returns int 0 for NULL values
+				xhtmlOutput << "<div class=\"T\">" << ( thisEvent.row_edited_timestamp != 0 ? "<div class=\"icons msg_edit\"><span>Edited</span></div> " : "" ) << formatTime( &thisEvent.timestamp_tm, 1 ) << "</div>"; // row_edited_timestamp is NULL (int 0) when no edit has taken place, as the sqlite3_column_int64() function returns int 0 for NULL values
 				}
-				xhtmlOutput	<< "</div>\n";
+				xhtmlOutput << "</div>\n";
 
 
 				/************************* EVENT PARSING  END  *************************/
@@ -743,7 +805,7 @@ namespace SkypeParser
 			} // end switch( thisEvent.row_type )
 		} // end while() row-parsing
 		if( parserState.chunkState != 0 ){ xhtmlOutput << "			</div>\n		</div>\n"; parserState.chunkState = 0; } // close the previous <div class="MC"> message-chunk container if one is open (NOTE: one will always be open at the end, so this is always true)
-		xhtmlOutput	<< "	</div>\n"; // closes the final <div class="DayContainer">
+		xhtmlOutput << "	</div>\n"; // closes the final <div class="DayContainer">
 
 
 		// Grab Messages: Cleanup
@@ -759,10 +821,10 @@ namespace SkypeParser
 
 
 		// Footer
-		xhtmlOutput	<< "	<div class=\"HistoryFooter\">\n" // starts the history-footer which simply contains the generation time.
-					<< "		<div class=\"LogFooterLine\">Exported " << parserState.eventCount << " events in " << clock_elapsed_usec << " millisecond" << ( clock_elapsed_usec != 1 ? "s" : "" ) << ".</div>\n" // the log generation runtime
-					<< "	</div>\n" // closes the history-footer
-					<< "</div>"; // closes the main <div class="ChatHistory"> log-container for this person
+		xhtmlOutput << "	<div class=\"HistoryFooter\">\n" // starts the history-footer which simply contains the generation time.
+		            << "		<div class=\"LogFooterLine\">Exported " << parserState.eventCount << " events in " << clock_elapsed_usec << " millisecond" << ( clock_elapsed_usec != 1 ? "s" : "" ) << ".</div>\n" // the log generation runtime
+		            << "	</div>\n" // closes the history-footer
+		            << "</div>"; // closes the main <div class="ChatHistory"> log-container for this person
 
 
 		// free up pre-compiled file transfer/call information statements
