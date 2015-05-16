@@ -81,7 +81,7 @@ int main( int argc, char **argv )
 		SkypeParser::CSkypeParser sp( dbPath.string() );
 		
 		// display all options (input database, output path, and all names to output (if specified))
-		std::cout << "Skype History Exporter v0.91 Beta\n"
+		std::cout << "Skype History Exporter v1.00 Stable\n"
 		          << "  DATABASE: [ " << dbPath << " ]\n"
 		          << "    OUTPUT: [ " << outPath << " ]\n";
 		if( outputContacts.size() > 0 ){

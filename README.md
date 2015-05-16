@@ -41,7 +41,7 @@ Supports _all_ features of the Skype protocol thanks to careful reverse-engineer
 
 * SkypeExport was born as a personal project as I was leaving Skype and needed some way of exporting years of conversations, but there were no solutions out there for doing so.
 * This software was created during an intense 3 week reverse engineering and coding session and was finished on August 28th, 2011, working perfectly with the latest Windows and Mac Skype versions out at that time.
-* As of May 2015, it still works perfectly with all of the latest versions of Skype; verified using Skype 7 on OS X.
+* As of May 2015, it still works perfectly with all of the latest versions of Skype; verified using Skype 7 on OS X. Support has been added for all new Skype 7 features such as message formatting.
 * I, the author, have very little time for tinkering with the code since it already fully supports the Skype protocol and is extremely robust. What remains to be done is just minor user-experience work such as offering an easier interface. If you are interested in ways to help make the project even better, the most important one would be to create a graphical user interface for this command line application.
 * The codebase is filled to the brim with extremely detailed comments, making it easy to understand for someone that's determined to read through it all.
 * Getting your head around the structure of this project might take a bit longer than a fully-polished, documented project, but everything is actually fairly straight-forward and self explanatory. Just poke around in the folders and read the various files.

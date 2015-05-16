@@ -3,12 +3,12 @@ License
 
 This project is licensed under the GPLv2 (no later versions). The complete license text is included below.
 
-The short summary
+The Short Summary
 -----------------
 
-You are free to use this code for *non-commercial* projects.
+You are free to use this code for *non-commercial* projects, but you are *highly encouraged* to contribute any important patches or features back to SkypeExport.
 
-If you distribute your project in any form, you are *required* to make your source available under the same GPLv2 (no later versions) license.
+If you distribute your project in *any* form, you are **required** to make your source available under the same GPLv2 (no later versions) license.
 
 Keep software free and open, and do your part in making the world a better place!
 
