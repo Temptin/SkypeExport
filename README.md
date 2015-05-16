@@ -2,7 +2,7 @@
 
 Cross-platform Skype history exporter written in C++. Very fast. Spits out beautiful, completely self-contained HTML pages that don't require any extra files.
 
-Supports all features of the Skype protocol thanks to careful reverse-engineering.
+Supports _all_ features of the Skype protocol thanks to careful reverse-engineering.
 
 ## Features
 
@@ -10,6 +10,7 @@ Supports all features of the Skype protocol thanks to careful reverse-engineerin
 * Edited-state of messages.
 * Delivery-state (Pending/delivered).
 * Emotes (/me emotes).
+* Message [formatting](http://blogs.skype.com/2014/10/16/instant-message-formatting-with-skype-for-mac-7-0/) added in Skype 7 (**bold**, _italics_, ~~strikethrough~~ and `preformatted`).
 * File transfers and their states (including multi-recipient transfers in conferences), their filenames and sizes (in human-friendly format).
 * Phone calls (incoming/outgoing/missed/ended).
 * Conference chats (their creation as well as their contents and people being added/leaving and all the chat history and events that took place in the conference, along with a custom style to set conferences apart graphically).

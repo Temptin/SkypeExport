@@ -180,6 +180,27 @@ namespace SkypeParser
 		std::string bodyXML = msgText; // we have no choice but to do a copy, as the original is a dynamically allocated char array
 
 		// NOTE: all replacements below are case-sensitive, since we can trust the Skype log to use all-lowercase for these special tags. this saves us some regex processing time since each character only has to be checked once.
+		
+		// bold/italics/strikethrough/preformatted text
+		// they were added in Skype 7: http://blogs.skype.com/2014/10/16/instant-message-formatting-with-skype-for-mac-7-0/
+		// skype has a few special characters that change the formatting, and it stores them in an odd way (with the pre/post-characters as attributes of the actual tag we wanted). we'll have to clean that up...
+		// here are the text-codes and how Skype saves them to the database:
+		//   @@ (prefix a message with this to disable all character-processing except smileys, thus allowing you to type *hey* etc); Skype will save such text as-is to the database and no special processing needs to be done (except for the smileys)
+		//   *Bold* = <b raw_pre="*" raw_post="*">Bold</b>
+		//   _Italics_ = <i raw_pre="_" raw_post="_">Italics</i>
+		//   ~Strikethrough~ = <s raw_pre="~" raw_post="~">Strikethrough</s>
+		//   <pre raw_pre="{code}" raw_post="{code}">Fixed-width Font</pre>
+		//   <pre raw_pre="!! ">Fixed-width Font</pre>
+		// we simply have to remove the raw_pre/raw_post attributes so we get simple <b>, <i>, and <s> tags
+		static const boost::regex rgxFormatting( "<([bis])(?: raw_[^=]+=\"[^\"]+\")+" ); // an opening b, i or s tag followed by one or more raw-attributes
+		static const std::string subFormatting( "<$1" );
+		bodyXML = boost::regex_replace( bodyXML, rgxFormatting, subFormatting, boost::regex_constants::match_default | boost::regex_constants::format_perl );
+		// for <pre> tags we need to do more processing, to turn them into a <span> class instead, for better control over display.
+		// before: <pre raw_pre="{code}" raw_post="{code}">Fixed-width Font</pre>
+		// after: <span class="pre">Fixed-width Font</span>
+		static const boost::regex rgxFixedwidth( "<pre(?:>| [^>]+?>)(.+?)</pre>" ); // note: since Skype replaces all <> tags in messages with &lt; and &gt;, there's no need to worry about inline "</pre>" statements in the code-block, since they'll be saved in the database as "&lt;/pre&gt;". but since the <pre> message contents can be an arbitrary length and may possibly include other stylistic HTML tags, all we need to worry about is making sure that we capture "any character up until the first </pre>", as we're doing above. that covers everything perfectly.
+		static const std::string subFixedwidth( "<span class=\"pre\">$1</span>" );
+		bodyXML = boost::regex_replace( bodyXML, rgxFixedwidth, subFixedwidth, boost::regex_constants::match_default | boost::regex_constants::format_perl );
 
 		// ss (skype smileys) aka emoticons
 		// parses emoticons and replaces them with the appropriate smiley-div

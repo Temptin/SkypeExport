@@ -460,6 +460,26 @@ div.flag.zm {background-position:-416px -143px}
 div.flag.zw {background-position:-416px -253px}
 
 
+/* -------------- MESSAGE TEXT FORMATTING TAGS ----------------- */
+/* These are used for the various text-styles that Skype lets you apply to portions of your messages. They added them in Skype 7: http://blogs.skype.com/2014/10/16/instant-message-formatting-with-skype-for-mac-7-0/ */
+
+b { /* Bold */
+	font-weight: bold;
+}
+
+i { /* Italics */
+	font-style: italic;
+}
+
+s { /* Strikethrough */
+	text-decoration: line-through;
+}
+
+span.pre { /* Pre-formatted Text / Code. Note: Since we're already treating all text as pre-preformatted whitespace, we should NOT add a white-space property here since we can trust that the alignment and indentation will be correct, so we just need to apply a different font to show that it's preformatted text */
+	font-family: monospace;
+}
+
+
 /* -------------- CHATHISTORY ----------------- */
 
 div.ChatHistory { /* The container that holds the whole history for one person */

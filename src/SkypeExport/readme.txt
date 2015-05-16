@@ -1,38 +1,18 @@
-FEATURES:
-Output all contacts or just a certain subset
-Edited-state of messages
-Delivery-state (Pending/delivered)
-Emotes (/me emotes)
-File transfers and their states (including multi-recipient transfers in conferences), their filenames and sizes (in human-friendly format)
-Phone calls (incoming/outgoing/missed/ended)
-Conference chats (their creation as well as their contents and people being added/leaving and all the chat history and events that took place in the conference, along with a custom style to set conferences apart graphically)
-Text messages including dynamic page-width based wrapping of extremely long words
-Text with multiple whitespaces and/or indentations is drawn properly
-Removed messages ("This message has been removed.")
-Sender of a message (with their exact name at that point in time)
-Web links
-Timestamps
-Emoticons (all of them)
-All country flag icons
-Detection and output of Display Name changes for yourself and others without needing a change in message-chunk direction (not even Skype does this!)
-Complete history export including every conference they were ever added to/talked in (this is something that even Skype itself cannot do!)
-The entire history for a chat contact is output as a *single* XHTML file that works in all modern browsers and contains the *entire* history and *all* images, stylesheets, etc (in a highly compressed format); this means you can share a single .htm file and it will contain the entire history and everything required to render it properly!
-It even outputs the complete history for people you have long-since deleted from your contact list!
-and much more (actually, that's all the major stuff, so not that much more ;)).
+TO BUILD:
+On Windows, make sure your compiler has the Boost 1.58 (or higher) headers and pre-compiled libraries in the include paths for the compiler and linker (the included MSVC2010 project is suggested). For ease of use, you can install all pre-built libraries using BoostPro.
+On Mac OS X, look in the _gccbuild folder and read the text document, then issue the build script.
+On Linux, it will be very similar to the OS X build, but possibly needing a different build script (not provided).
+SQLite3 is also required, but is bundled with the project.
+
+
+
+*** THIS README FILE IS OLD AND OUTDATED. SEE THE MAIN README.MD INSTEAD. THIS FILE IS JUST PRESERVED HERE FOR THE POSSIBLY-STILL-USEFUL INFORMATION THAT IT CONTAINS ***
 
 
 
 WORKS IN BROWSERS: Safari 3/4/5+, Firefox 3/4/5+, Chrome, IE8/9+*. Lower numbers of these don't render the page EXACTLY as it should but just about everything will look right (old browsers COULD be made to work perfectly but I don't want to invest the time in supporting old technology, as doing so would require extra elements/containers on the page and bloated stylesheets to emulate missing CSS features etc). Unlisted browsers not tested. It seems to be that any browser made from about 2008 should support viewing the logs the way they were meant to be viewed. That's almost 4 years, and only utter idiots would run browsers older than that. I'm not going to adapt the page to utter idiots.
 Note: * IE8 does render the page nearly perfectly, but is slow as hell and has one minor issue of not supporting the opacity attribute on the icons (so they appear as pitch black). Additionally, the final-output version with embedded images uses data:// uris that are larger than IE8 supports, thereby removing the support for embedded emoticons from IE8. To work around this would require us to split the emoticon sheet into two classes, which is not that hard, but it would also require us to massively split up the world flags sheet and add a bunch of extra CSS, screw that, I'm not going to accomodate the idiotic IE8 (additionally, IE versions below 8 won't even support data:// URIs). Any IE below 9 is utter garbage.
 BROKEN IN OLD-AS-HELL BROWSERS: Firefox 2 and earlier renders the page passably but looks quite poor as it lacks CSS3 selectors, extended "display: ..." attributes like inline-* and table-*, and so on. I don't think anyone is dumb enough to still use anything older than at worst Firefox 3 though. IE7 and earlier renders the page in a very messed up manner with the timestamps below the message bodies, as it (just like Firefox 2 and earlier) lacks advanced CSS attributes and selectors; additionally, IE7 and below lack the data:// uri for embedded images which we use in the final stylesheet.
-
-
-
-TO BUILD:
-On Windows, make sure your compiler has the Boost 1.58 (or higher) headers and pre-compiled libraries in the include paths for the compiler and linker (the included MSVC2010 project is suggested). For ease of use, you can install all pre-built libraries using BoostPro.
-On Mac OS X, look in the _gccbuild folder and read the text document, then issue the build script.
-On Linux, it will be very similar to the OS X build, but possibly needing a different build script (not provided).
-SQLite3 is also required, but is bundled with the project.
 
 
 
@@ -77,7 +57,6 @@ KNOWN ISSUES, WONTFIX (maybe some day):
 
 
 
-
 KNOWN ISSUES, SERIOUS:
 * The regular expression library used does not support UTF8/UTF16/UTF32. Requires some major changes to port to the IBM ICU string library and boost:u32regex. The current implementation has a very minor risk of falsely identifying unicode letters as part of a regex when they really shouldn't be matching. That risk will be eliminated once porting has been performed.
 
@@ -85,6 +64,7 @@ KNOWN ISSUES, SERIOUS:
 
 FUTURE WISHES:
 * Full GUI
+* Command-line switches for 24h time and UTC time; see comment at top of "main.cpp" for more info on how to implement those.
 * Automatic locating of the Skype folder on Mac, Windows and Linux so that you will only have to provide your username (tricky, as the paths are not fixed, and you may sometimes want to provide just the raw db itself to be parsed)
 * Log-picker interface where you can view logs inside the GUI
 * Time-range slider based on first and last event (first and last is easy to find), to allow partial export/view
