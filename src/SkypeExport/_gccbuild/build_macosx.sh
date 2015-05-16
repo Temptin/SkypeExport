@@ -8,6 +8,7 @@ if [[ -f "buildcache/sqlite3.o" && "buildcache/sqlite3.o" -nt "../libs/sqlite3/s
 else
 	echo " - Building (New/Modified): sqlite3.o"
 	gcc -arch i386 -arch x86_64 -O3 -c "../libs/sqlite3/sqlite3.c" -o "buildcache/sqlite3.o"
+	[ $? -ne 0 ] && { echo "Compilation failed..."; exit 1; }
 fi
 
 if [[ -f "buildcache/skypeparser_core.o" && "buildcache/skypeparser_core.o" -nt "../model/skypeparser_core.cpp" && "buildcache/skypeparser_core.o" -nt "../model/skypeparser.h" && "buildcache/skypeparser_core.o" -nt "../libs/sqlite3/sqlite3.h" && "buildcache/skypeparser_core.o" -nt "../resources/css_and_images/style_compact_data_css.h" ]]; then
@@ -16,6 +17,7 @@ else
 	echo " - Building (New/Modified): skypeparser_core.o"
 	g++ -arch i386 -arch x86_64 -O3 -c "../model/skypeparser_core.cpp" -o "buildcache/skypeparser_core.o" \
 		-I /usr/local/include
+	[ $? -ne 0 ] && { echo "Compilation failed..."; exit 1; }
 fi
 
 if [[ -f "buildcache/skypeparser_parsing.o" && "buildcache/skypeparser_parsing.o" -nt "../model/skypeparser_parsing.cpp" && "buildcache/skypeparser_parsing.o" -nt "../model/skypeparser.h" && "buildcache/skypeparser_parsing.o" -nt "../libs/sqlite3/sqlite3.h" && "buildcache/skypeparser_parsing.o" -nt "../resources/css_and_images/style_compact_data_css.h" ]]; then
@@ -24,6 +26,7 @@ else
 	echo " - Building (New/Modified): skypeparser_parsing.o"
 	g++ -arch i386 -arch x86_64 -O3 -c "../model/skypeparser_parsing.cpp" -o "buildcache/skypeparser_parsing.o" \
 		-I /usr/local/include
+	[ $? -ne 0 ] && { echo "Compilation failed..."; exit 1; }
 fi
 
 if [[ -f "buildcache/main.o" && "buildcache/main.o" -nt "../main.cpp" && "buildcache/main.o" -nt "../model/skypeparser.h" && "buildcache/main.o" -nt "../libs/sqlite3/sqlite3.h" && "buildcache/main.o" -nt "../resources/css_and_images/style_compact_data_css.h" ]]; then
@@ -32,6 +35,7 @@ else
 	echo " - Building (New/Modified): main.o"
 	g++ -arch i386 -arch x86_64 -O3 -c "../main.cpp" -o "buildcache/main.o" \
 		-I /usr/local/include
+	[ $? -ne 0 ] && { echo "Compilation failed..."; exit 1; }
 fi
 
 echo " - Linking: SkypeParser"
@@ -42,5 +46,6 @@ g++ -arch i386 -arch x86_64 "buildcache/sqlite3.o" "buildcache/skypeparser_core.
 	-lboost_program_options \
 	-lboost_regex \
 	-lboost_system
+[ $? -ne 0 ] && { echo "Compilation failed..."; exit 1; }
 
 echo "Build complete! Check the ./release folder..."
