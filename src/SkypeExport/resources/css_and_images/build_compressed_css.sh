@@ -7,14 +7,14 @@ echo 'Building stylesheet with embedded Base64 images...' . PHP_EOL;
 
 // read the original CSS into memory
 $css = file_get_contents( './original/style.css' );
-echo '- Loaded source stylesheet (' . strlen( $css ) . ' bytes).' . PHP_EOL;
+echo ' - Loaded source stylesheet (' . strlen( $css ) . ' bytes).' . PHP_EOL;
 
 // convert each smushed image to base64 and merge with the in-memory stylesheet
 $imagedir = './original/images_smushed';
 $files = scandir( $imagedir );
 foreach( $files as $file ){
 	if( substr( $file, -4 ) == '.png' ){
-		echo '- Converting ' . $file . ' to Base64 and embedding in CSS...' . PHP_EOL;
+		echo ' - Converting ' . $file . ' to Base64 and embedding in CSS...' . PHP_EOL;
 		$img_base64 = 'data:image/png;base64,' . base64_encode( file_get_contents( $imagedir . '/' . $file ) );
 		
 		// merge the base64 data into the stylesheet
@@ -23,7 +23,7 @@ foreach( $files as $file ){
 }
 
 // minify the final stylesheet and save it to disk
-echo '- Minifying stylesheet to compress it...';
+echo ' - Minifying stylesheet to compress it...';
 $cssmin = CssMin::minify( $css );
 file_put_contents( './style_compact_data.css', $cssmin );
 echo ' (before: ' . strlen( $css ) . ' bytes, after: ' . strlen( $cssmin ) . ' bytes)' . PHP_EOL;
@@ -69,9 +69,9 @@ function text2header( $varname, $str ){
 }
 
 // convert the minified and data-containing CSS into a C header and save it to disk
-echo '- Saving final stylesheet as C header...' . PHP_EOL;
+echo ' - Saving final stylesheet as C header...' . PHP_EOL;
 $cssheader = text2header( 'style_compact_data_css', $cssmin );
 file_put_contents( 'style_compact_data_css.h', $cssheader );
-echo '- Header saved to style_compact_data_css.h!' . PHP_EOL;
+echo ' - Header saved to style_compact_data_css.h!' . PHP_EOL;
 
 ?>
