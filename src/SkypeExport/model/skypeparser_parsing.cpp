@@ -2,7 +2,7 @@
 
 namespace SkypeParser
 {
-	#include "../resources/style_compact_data_css.h"
+	#include "../resources/css_and_images/style_compact_data_css.h"
 
 	void CSkypeParser::exportUserHistory( const std::string &skypeID, const std::string &targetFile )
 	{

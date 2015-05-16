@@ -1,0 +1,708 @@
+/* Global styles */
+
+* {
+	font: 12px "Lucida Grande",Helvetica,Arial,sans-serif;
+}
+
+body {
+	padding: 0;
+	margin: 8px; /* unifies page margins across browsers; according to W3.org, this is already the default in just about every browser out there. */
+}
+
+a { /* Web Links in messages and on the page itself */
+	color: #007EC4;
+	text-decoration: none;
+}
+a:hover { /* some CSS tricks to create a dotted underline on hover */
+	text-decoration: none;
+	border-color: #007EC4;
+	border-width:0 0 1px 0;
+	border-style: dotted;
+}
+
+
+/* -------------- DIV-BASED ICONS ----------------- */
+
+div.icons > span { /* Hides the alternative text for the icon */
+	display: none;
+}
+
+div.icons { /* Sets up common properties for the icon-sheet */
+	display: inline-block;
+	width: 14px; /* default icon size */
+	height: 14px;
+	vertical-align: text-top; /* aligns the top of the icon element with the top of the parent element's font; this ensures that it expands the parent element downwards rather than upwards */
+	margin: 0; /* ensures that the icon doesn't inherit parent margins if this is dropped into a page with additional stylesheets */
+	
+	background: transparent url(images/icons.png) no-repeat 0 0;
+	
+	opacity: 0.25; /* causes the sheet of black icons to draw transparently, giving them a light-gray color. set their opacity here. works in all modern browsers (incl. IE9, but not IE8). */
+}
+
+div.icons.ft_ok { /* File transfer OK */
+	background-position: 0 -14px;
+}
+div.icons.ft_failed { /* File transfer FAILED */
+	background-position: 0 -28px;
+}
+div.icons.ft_ok,
+div.icons.ft_failed {
+	margin-right: 1px !important; /* aligns the offset with the text following call icons (that often appear near transfers) and also makes file lines look better aligned overall */
+}
+div.icons.msg_edit { /* Message edited */
+	width: 8px !important;  /* the edit icon should be smaller than normal */
+	height: 8px !important;
+	vertical-align: baseline !important; /* we want the edit icon to sit at the baseline, so that it perfectly lines up with the timestamp font at all times. the baseline is the line that the parent element's text content sits at, minus parts that may be hanging down below the baseline (in letters such as "y"). sidenote: html elements all default to baseline alignment, but the baseline will be at the absolute bottom unless a text string is also put in the element, so if you were to take out the timestamp text string, the edit icon would sit flush at the bottom of the parent container, apart from any padding of course. also, the baseline location is dependent on where you've put your element in the text sequence. for instance, a text sequence that's wrapping over multiple lines, with an element placed in the text at the 3rd line, would cause it to align to the 3rd line's baseline. */
+	
+	background-position: 0 0px;
+}
+
+
+/* -------------- DIV-BASED CALL ICONS ----------------- */
+
+div.callicons > span { /* Hides the alternative text for the call icon */
+	display: none;
+}
+
+div.callicons { /* Sets up common properties for the call icon-sheet */
+	display: inline-block;
+	width: 24px; /* default call icon size */
+	height: 18px;
+	vertical-align: text-top; /* aligns the top of the call icon element with the top of the parent element's font; this ensures that it expands the parent element downwards rather than upwards */
+	margin: 0; /* ensures that the call icon doesn't inherit parent margins if this is dropped into a page with additional stylesheets */
+	
+	background: transparent url(images/calls_24x18.png) no-repeat 0 0; /* note: the call icons are already transparent so they do not need any opacity rule */
+	
+	margin-left: 1px; /* pushes the call icon away from the left hand side just enough to make it look better aligned */
+}
+
+div.callicons.call_incoming { /* Incoming Call */
+	background-position: 0 0;
+}
+div.callicons.call_outgoing { /* Outgoing Call */
+	background-position: -24px 0;
+}
+div.callicons.call_ended { /* Call Ended (for calls that were picked up) */
+	background-position: -48px 0;
+}
+div.callicons.call_noanswer { /* Call Aborted/Missed (for calls that were not picked up) */
+	background-position: -72px 0;
+}
+
+
+/* -------------- DIV-BASED EMOTICONS ----------------- */
+
+div.ss > span { /* Hides the alternative text for the emoticon */
+	display: none;
+}
+
+div.ss { /* Sets up common properties for the emoticon-sheet */
+	display: inline-block;
+	width: 19px; /* emoticon size */
+	height: 19px;
+	vertical-align: text-top; /* aligns the top of the emoticon element with the top of the parent element's font; this ensures that it expands the parent element downwards rather than upwards */
+	margin: 0; /* ensures that the emoticon doesn't inherit parent margins if this is dropped into a page with additional stylesheets */
+	
+	background: transparent url(images/emoticons.png) no-repeat 0 0;
+}
+
+div.ss.angel {background-position:0 0}
+div.ss.angry {background-position:-19px 0}
+div.ss.bandit {background-position:-38px 0}
+div.ss.beer {background-position:-76px 0}
+div.ss.blush {background-position:-114px 0}
+div.ss.bow {background-position:-133px 0}
+div.ss.brokenheart {background-position:-152px 0}
+div.ss.bug {background-position:-171px 0}
+div.ss.cake {background-position:-190px 0}
+div.ss.call {background-position:-209px 0}
+div.ss.cash {background-position:-228px 0}
+div.ss.clap {background-position:-247px 0}
+div.ss.coffee {background-position:-266px 0}
+div.ss.cool {background-position:-285px 0}
+div.ss.cry {background-position:-304px 0}
+div.ss.dance {background-position:-323px 0}
+div.ss.devil {background-position:-342px 0}
+div.ss.doh {background-position:-361px 0}
+div.ss.drink {background-position:-399px 0}
+div.ss.drunk {background-position:-380px 0}
+div.ss.dull {background-position:-418px 0}
+div.ss.eg {background-position:-475px 0}
+div.ss.emo {background-position:-437px 0}
+div.ss.envy {background-position:-456px 0}
+div.ss.finger {background-position:-798px 0}
+div.ss.flower {background-position:-494px 0}
+div.ss.fubar {background-position:-513px 0}
+div.ss.giggle {background-position:-532px 0}
+div.ss.handshake {background-position:-551px 0}
+div.ss.happy {background-position:-570px 0}
+div.ss.headbang {background-position:-589px 0}
+div.ss.heart {background-position:-608px 0}
+div.ss.heidy {background-position:-627px 0}
+div.ss.hi {background-position:-646px 0}
+div.ss.hug {background-position:-57px 0}
+div.ss.inlove {background-position:-665px 0}
+div.ss.kiss {background-position:-703px 0}
+div.ss.laugh {background-position:-95px 0}
+div.ss.lipssealed {background-position:-722px 0}
+div.ss.mail {background-position:-741px 0}
+div.ss.makeup {background-position:-760px 0}
+div.ss.mlt {background-position:-779px 0}
+div.ss.mmm {background-position:-817px 0}
+div.ss.mooning {background-position:-836px 0}
+div.ss.movie {background-position:-855px 0}
+div.ss.muscle {background-position:-874px 0}
+div.ss.music {background-position:-893px 0}
+div.ss.myspace {background-position:-912px 0}
+div.ss.nerdy {background-position:-931px 0}
+div.ss.ninja {background-position:-950px 0}
+div.ss.nod {background-position:-988px 0}
+div.ss.no {background-position:-969px 0}
+div.ss.party {background-position:-1007px 0}
+div.ss.phone {background-position:-1026px 0}
+div.ss.pizza {background-position:-1045px 0}
+div.ss.poolparty {background-position:-1064px 0}
+div.ss.priidu {background-position:-1083px 0}
+div.ss.puke {background-position:-1102px 0}
+div.ss.punch {background-position:-1121px 0}
+div.ss.rain {background-position:-1140px 0}
+div.ss.rock {background-position:-1159px 0}
+div.ss.rofl {background-position:-1178px 0}
+div.ss.sad {background-position:-1197px 0}
+div.ss.shake {background-position:-1216px 0}
+div.ss.skype {background-position:-1235px 0}
+div.ss.sleepy {background-position:-1254px 0}
+div.ss.smile {background-position:-1273px 0}
+div.ss.smirk {background-position:-1292px 0}
+div.ss.smoke {background-position:-1311px 0}
+div.ss.speechless {background-position:-1330px 0}
+div.ss.star {background-position:-1349px 0}
+div.ss.sun {background-position:-1368px 0}
+div.ss.surprised {background-position:-1387px 0}
+div.ss.swear {background-position:-1406px 0}
+div.ss.sweat {background-position:-1425px 0}
+div.ss.talk {background-position:-1444px 0}
+div.ss.taur {background-position:-1463px 0}
+div.ss.think {background-position:-1482px 0}
+div.ss.time {background-position:-1501px 0}
+div.ss.tmi {background-position:-1520px 0}
+div.ss.toivo {background-position:-1539px 0}
+div.ss.tongueout {background-position:-1558px 0}
+div.ss.wait {background-position:-1577px 0}
+div.ss.wasntme {background-position:-684px 0}
+div.ss.whew {background-position:-1596px 0}
+div.ss.wink {background-position:-1615px 0}
+div.ss.wonder {background-position:-1634px 0}
+div.ss.worry {background-position:-1653px 0}
+div.ss.yawn {background-position:-1672px 0}
+div.ss.yes {background-position:-1691px 0}
+
+
+/* -------------- DIV-BASED COUNTRY FLAGS ----------------- */
+
+div.flag > span { /* Hides the alternative text for the flag */
+	display: none;
+}
+
+div.flag { /* Sets up common properties for the flag-sheet */
+	display: inline-block;
+	width: 16px; /* flag size */
+	height: 11px;
+	vertical-align: baseline; /* flags should be aligned to the font's baseline, so that they sit in line with the text */
+	margin: 0; /* ensures that the flag doesn't inherit parent margins if this is dropped into a page with additional stylesheets */
+	
+	background: transparent url(images/worldflags_16x11.png) no-repeat 0 0;
+}
+
+div.flag.ad {background-position:-16px -44px}
+div.flag.ae {background-position:-16px -55px}
+div.flag.af {background-position:-16px -66px}
+div.flag.ag {background-position:-16px -77px}
+div.flag.ai {background-position:-16px -99px}
+div.flag.al {background-position:-16px -132px}
+div.flag.am {background-position:-16px -143px}
+div.flag.an {background-position:-16px -154px}
+div.flag.ao {background-position:-16px -165px}
+div.flag.aq {background-position:-16px -187px}
+div.flag.ar {background-position:-16px -198px}
+div.flag.as {background-position:-16px -209px}
+div.flag.at {background-position:-16px -220px}
+div.flag.au {background-position:-16px -231px}
+div.flag.aw {background-position:-16px -253px}
+div.flag.ax {background-position:-16px -264px}
+div.flag.az {background-position:-16px -286px}
+div.flag.ba {background-position:-32px -11px}
+div.flag.bb {background-position:-32px -22px}
+div.flag.bd {background-position:-32px -44px}
+div.flag.be {background-position:-32px -55px}
+div.flag.bf {background-position:-32px -66px}
+div.flag.bg {background-position:-32px -77px}
+div.flag.bh {background-position:-32px -88px}
+div.flag.bi {background-position:-32px -99px}
+div.flag.bj {background-position:-32px -110px}
+div.flag.bm {background-position:-32px -143px}
+div.flag.bn {background-position:-32px -154px}
+div.flag.bo {background-position:-32px -165px}
+div.flag.br {background-position:-32px -198px}
+div.flag.bs {background-position:-32px -209px}
+div.flag.bt {background-position:-32px -220px}
+div.flag.bv {background-position:-32px -242px}
+div.flag.bw {background-position:-32px -253px}
+div.flag.by {background-position:-32px -275px}
+div.flag.bz {background-position:-32px -286px}
+div.flag.ca {background-position:-48px -11px}
+div.flag.cc {background-position:-48px -33px}
+div.flag.cd {background-position:-48px -44px}
+div.flag.cf {background-position:-48px -66px}
+div.flag.cg {background-position:-48px -77px}
+div.flag.ch {background-position:-48px -88px}
+div.flag.ci {background-position:-48px -99px}
+div.flag.ck {background-position:-48px -121px}
+div.flag.cl {background-position:-48px -132px}
+div.flag.cm {background-position:-48px -143px}
+div.flag.cn {background-position:-48px -154px}
+div.flag.co {background-position:-48px -165px}
+div.flag.cr {background-position:-48px -198px}
+div.flag.cu {background-position:-48px -231px}
+div.flag.cv {background-position:-48px -242px}
+div.flag.cx {background-position:-48px -264px}
+div.flag.cy {background-position:-48px -275px}
+div.flag.cz {background-position:-48px -286px}
+div.flag.de {background-position:-64px -55px}
+div.flag.dj {background-position:-64px -110px}
+div.flag.dk {background-position:-64px -121px}
+div.flag.dm {background-position:-64px -143px}
+div.flag.do {background-position:-64px -165px}
+div.flag.dz {background-position:-64px -286px}
+div.flag.ec {background-position:-80px -33px}
+div.flag.ee {background-position:-80px -55px}
+div.flag.eg {background-position:-80px -77px}
+div.flag.eh {background-position:-80px -88px}
+div.flag.er {background-position:-80px -198px}
+div.flag.es {background-position:-80px -209px}
+div.flag.et {background-position:-80px -220px}
+div.flag.eu {background-position:-80px -231px}
+div.flag.fi {background-position:-96px -99px}
+div.flag.fj {background-position:-96px -110px}
+div.flag.fk {background-position:-96px -121px}
+div.flag.fm {background-position:-96px -143px}
+div.flag.fo {background-position:-96px -165px}
+div.flag.fr {background-position:-96px -198px}
+div.flag.ga {background-position:-112px -11px}
+div.flag.gb {background-position:-112px -22px}
+div.flag.gd {background-position:-112px -44px}
+div.flag.ge {background-position:-112px -55px}
+div.flag.gf {background-position:-112px -66px}
+div.flag.gh {background-position:-112px -88px}
+div.flag.gi {background-position:-112px -99px}
+div.flag.gl {background-position:-112px -132px}
+div.flag.gm {background-position:-112px -143px}
+div.flag.gn {background-position:-112px -154px}
+div.flag.gp {background-position:-112px -176px}
+div.flag.gq {background-position:-112px -187px}
+div.flag.gr {background-position:-112px -198px}
+div.flag.gs {background-position:-112px -209px}
+div.flag.gt {background-position:-112px -220px}
+div.flag.gu {background-position:-112px -231px}
+div.flag.gw {background-position:-112px -253px}
+div.flag.gy {background-position:-112px -275px}
+div.flag.hk {background-position:-128px -121px}
+div.flag.hm {background-position:-128px -143px}
+div.flag.hn {background-position:-128px -154px}
+div.flag.hr {background-position:-128px -198px}
+div.flag.ht {background-position:-128px -220px}
+div.flag.hu {background-position:-128px -231px}
+div.flag.id {background-position:-144px -44px}
+div.flag.ie {background-position:-144px -55px}
+div.flag.il {background-position:-144px -132px}
+div.flag.in {background-position:-144px -154px}
+div.flag.io {background-position:-144px -165px}
+div.flag.iq {background-position:-144px -187px}
+div.flag.ir {background-position:-144px -198px}
+div.flag.is {background-position:-144px -209px}
+div.flag.it {background-position:-144px -220px}
+div.flag.jm {background-position:-160px -143px}
+div.flag.jo {background-position:-160px -165px}
+div.flag.jp {background-position:-160px -176px}
+div.flag.ke {background-position:-176px -55px}
+div.flag.kg {background-position:-176px -77px}
+div.flag.kh {background-position:-176px -88px}
+div.flag.ki {background-position:-176px -99px}
+div.flag.km {background-position:-176px -143px}
+div.flag.kn {background-position:-176px -154px}
+div.flag.kp {background-position:-176px -176px}
+div.flag.kr {background-position:-176px -198px}
+div.flag.kw {background-position:-176px -253px}
+div.flag.ky {background-position:-176px -275px}
+div.flag.kz {background-position:-176px -286px}
+div.flag.la {background-position:-192px -11px}
+div.flag.lb {background-position:-192px -22px}
+div.flag.lc {background-position:-192px -33px}
+div.flag.li {background-position:-192px -99px}
+div.flag.lk {background-position:-192px -121px}
+div.flag.lr {background-position:-192px -198px}
+div.flag.ls {background-position:-192px -209px}
+div.flag.lt {background-position:-192px -220px}
+div.flag.lu {background-position:-192px -231px}
+div.flag.lv {background-position:-192px -242px}
+div.flag.ly {background-position:-192px -275px}
+div.flag.ma {background-position:-208px -11px}
+div.flag.mc {background-position:-208px -33px}
+div.flag.md {background-position:-208px -44px}
+div.flag.me {background-position:-208px -55px}
+div.flag.mg {background-position:-208px -77px}
+div.flag.mh {background-position:-208px -88px}
+div.flag.mk {background-position:-208px -121px}
+div.flag.ml {background-position:-208px -132px}
+div.flag.mm {background-position:-208px -143px}
+div.flag.mn {background-position:-208px -154px}
+div.flag.mo {background-position:-208px -165px}
+div.flag.mp {background-position:-208px -176px}
+div.flag.mq {background-position:-208px -187px}
+div.flag.mr {background-position:-208px -198px}
+div.flag.ms {background-position:-208px -209px}
+div.flag.mt {background-position:-208px -220px}
+div.flag.mu {background-position:-208px -231px}
+div.flag.mv {background-position:-208px -242px}
+div.flag.mw {background-position:-208px -253px}
+div.flag.mx {background-position:-208px -264px}
+div.flag.my {background-position:-208px -275px}
+div.flag.mz {background-position:-208px -286px}
+div.flag.na {background-position:-224px -11px}
+div.flag.nc {background-position:-224px -33px}
+div.flag.ne {background-position:-224px -55px}
+div.flag.nf {background-position:-224px -66px}
+div.flag.ng {background-position:-224px -77px}
+div.flag.ni {background-position:-224px -99px}
+div.flag.nl {background-position:-224px -132px}
+div.flag.no {background-position:-224px -165px}
+div.flag.np {background-position:-224px -176px}
+div.flag.nr {background-position:-224px -198px}
+div.flag.nu {background-position:-224px -231px}
+div.flag.nz {background-position:-224px -286px}
+div.flag.om {background-position:-240px -143px}
+div.flag.pa {background-position:-256px -11px}
+div.flag.pe {background-position:-256px -55px}
+div.flag.pf {background-position:-256px -66px}
+div.flag.pg {background-position:-256px -77px}
+div.flag.ph {background-position:-256px -88px}
+div.flag.pk {background-position:-256px -121px}
+div.flag.pl {background-position:-256px -132px}
+div.flag.pm {background-position:-256px -143px}
+div.flag.pn {background-position:-256px -154px}
+div.flag.pr {background-position:-256px -198px}
+div.flag.ps {background-position:-256px -209px}
+div.flag.pt {background-position:-256px -220px}
+div.flag.pw {background-position:-256px -253px}
+div.flag.py {background-position:-256px -275px}
+div.flag.qa {background-position:-272px -11px}
+div.flag.re {background-position:-288px -55px}
+div.flag.ro {background-position:-288px -165px}
+div.flag.rs {background-position:-288px -209px}
+div.flag.ru {background-position:-288px -231px}
+div.flag.rw {background-position:-288px -253px}
+div.flag.sa {background-position:-304px -11px}
+div.flag.sb {background-position:-304px -22px}
+div.flag.sc {background-position:-304px -33px}
+div.flag.sd {background-position:-304px -44px}
+div.flag.se {background-position:-304px -55px}
+div.flag.sg {background-position:-304px -77px}
+div.flag.sh {background-position:-304px -88px}
+div.flag.si {background-position:-304px -99px}
+div.flag.sj {background-position:-304px -110px}
+div.flag.sk {background-position:-304px -121px}
+div.flag.sl {background-position:-304px -132px}
+div.flag.sm {background-position:-304px -143px}
+div.flag.sn {background-position:-304px -154px}
+div.flag.so {background-position:-304px -165px}
+div.flag.sr {background-position:-304px -198px}
+div.flag.ss {background-position:-304px -209px}
+div.flag.st {background-position:-304px -220px}
+div.flag.sv {background-position:-304px -242px}
+div.flag.sy {background-position:-304px -275px}
+div.flag.sz {background-position:-304px -286px}
+div.flag.tc {background-position:-320px -33px}
+div.flag.td {background-position:-320px -44px}
+div.flag.tf {background-position:-320px -66px}
+div.flag.tg {background-position:-320px -77px}
+div.flag.th {background-position:-320px -88px}
+div.flag.tj {background-position:-320px -110px}
+div.flag.tk {background-position:-320px -121px}
+div.flag.tl {background-position:-320px -132px}
+div.flag.tm {background-position:-320px -143px}
+div.flag.tn {background-position:-320px -154px}
+div.flag.to {background-position:-320px -165px}
+div.flag.tr {background-position:-320px -198px}
+div.flag.tt {background-position:-320px -220px}
+div.flag.tv {background-position:-320px -242px}
+div.flag.tw {background-position:-320px -253px}
+div.flag.tz {background-position:-320px -286px}
+div.flag.ua {background-position:-336px -11px}
+div.flag.ug {background-position:-336px -77px}
+div.flag.uk {background-position:-336px -121px}
+div.flag.um {background-position:-336px -143px}
+div.flag.us {background-position:-336px -209px}
+div.flag.uy {background-position:-336px -275px}
+div.flag.uz {background-position:-336px -286px}
+div.flag.va {background-position:-352px -11px}
+div.flag.vc {background-position:-352px -33px}
+div.flag.ve {background-position:-352px -55px}
+div.flag.vg {background-position:-352px -77px}
+div.flag.vi {background-position:-352px -99px}
+div.flag.vn {background-position:-352px -154px}
+div.flag.vu {background-position:-352px -231px}
+div.flag.wf {background-position:-368px -66px}
+div.flag.ws {background-position:-368px -209px}
+div.flag.ye {background-position:-400px -55px}
+div.flag.yt {background-position:-400px -220px}
+div.flag.za {background-position:-416px -11px}
+div.flag.zm {background-position:-416px -143px}
+div.flag.zw {background-position:-416px -253px}
+
+
+/* -------------- CHATHISTORY ----------------- */
+
+div.ChatHistory { /* The container that holds the whole history for one person */
+	width: 100%; /* specifies the width of the log, currently set to take up 100% of the page, but can be adjusted to-taste for smaller widths, ie. if you want to have a thinner, centered log */
+}
+
+
+/* -------------- CONFERENCEHISTORY ----------------- */
+/* ConferenceHistory extends the look of ChatHistory containers for conferences. This is an *additional* class for all ChatHistory containers holding conference logs. */
+
+div.ConferenceHistory,
+div.ConferenceHistory > div.DayContainer > div.MC.SO {
+	background: transparent url(images/conference_bgstripes.png) repeat 0 0 !important; /* striped background in the header, footer, in the dates between daycontainers, as well as the background for our outgoing messages to the conference */
+}
+div.ConferenceHistory {
+	border-top: 1px solid #DADADA !important; /* encase conferences in a top and bottom border */
+	border-bottom: 1px solid #DADADA !important;
+	padding-top: 10px !important; /* pad the top to allow the header logo to sit nicer given the striped background and top-border; this matches the appearance of the regular chatcontainer and its distance from the 8px top-margin of the page. */
+	margin-bottom: 2em !important; /* gives conferencehistory containers a 2em bottom-margin, so that multiple conferences in a row are spaced apart, and so that the last conference on the page doesn't suffocate against the page's bottom-margin */
+}
+div.ConferenceHistory > div.HistoryHeader,
+div.ConferenceHistory > div.HistoryFooter,
+div.ConferenceHistory > div.DayHeader {
+	margin-left: 4px !important; /* gives a few pixels of breathing room to the left of the historyheader, historyfooter and dayheaders, since our conference background makes absolute-left placement ugly as hell */
+}
+div.ConferenceHistory > div.HistoryHeader > div.SkypeLogo { /* exchanges the skype logo for a "skype conference" logo and sets the correct size */
+	width: 154px !important;
+	height: 88px !important;
+	background-image: url(images/skype_logo_conference.png) !important;
+}
+div.ConferenceHistory > div.DayContainer:nth-child(3) > div.MC:first-child { /* nth-child(3): "child 1: historyheader, child 2: dayheader, child 3: first daycontainer". this is always the correct order to find the first messagecontainer of the first daycontainer, so this is a safe statement */
+	border-top: 1px solid #DADADA !important; /* ensures that the first messagecollection of a conferencehistory container has a top-border even if it's of "SI" (incoming) type; this ensures that it looks good when you take into account the top-border of the whole conference container and the striped background etc. */
+}
+div.ConferenceHistory > div.DayContainer:nth-last-child(2) > div.MC:last-child { /* nth-last-child(2): means a daycontainer that's the 2nd-to-last child of the the parent container (the last child is the historyfooter). this catches the final messagecontainer of the last daycontainer. */
+	border-bottom: 1px solid #DADADA !important; /* ensures that the final messagecollection of a conferencehistory container has a bottom-border even if it's of "SI" (incoming) type; this ensures that it looks good when you take into account the bottom-border of the whole conference container and the striped background etc. */
+}
+
+
+/* -------------- HISTORYHEADER ----------------- */
+
+div.ChatHistory > div.HistoryHeader { /* Holds the Skype logo, and two lines for the clickable name for the person whose history you're exporting as well as the log creation date */
+}
+
+div.ChatHistory > div.HistoryHeader > div.SkypeLogo {
+	display: block; /* we don't want inline-block, as we WANT the logo to push down subsequent elements into the next line */
+	width: 154px; /* skype logo size */
+	height: 68px;
+	margin: 0; /* ensures that the logo doesn't inherit parent margins if this is dropped into a page with additional stylesheets */
+	margin-bottom: 15px; /* puts some space between the bottom of the logo and the following line */
+	
+	background: transparent url(images/skype_logo.png) no-repeat 0 0;
+}
+div.ChatHistory > div.HistoryHeader > div.LogHeaderLine1, /* this is the "Chat History with Firstname Lastname (SkypeID)"/"Conference History for ..." line */
+div.ChatHistory > div.HistoryHeader > div.LogHeaderLine1 > a { /* we want the name anchor (link) to be bold as well */
+	font-weight: bold;
+}
+div.ChatHistory > div.HistoryHeader > div.LogHeaderLine2 { /* this is the "Created on August 16th, 2011 at 5:43:53 PM." line */
+}
+
+
+/* -------------- HISTORYFOOTER ----------------- */
+
+div.ChatHistory > div.HistoryFooter { /* Holds the log generation time in seconds */
+	padding: 2em 0; /* put some space around the top and bottom of the "Generation took X seconds" container; use padding rather than margin so that the ConferenceHistory type can continue its background all the way to the end */
+}
+div.ChatHistory > div.HistoryFooter > div.LogFooterLine { /* this is the "Generation took 0.0596... seconds." line */
+}
+
+
+/*
+Structure description for the day/message-portion of the output:
+
+DayHeader: Describes a new day
+DayContainer: Holds everything for that day
+ MC: "Message-chunk", all messages going in one direction, with SO/SI classes denoting outgoing/incoming direction
+   A: Author of the messages in that chunk
+   C: Collection of messages for that chunk
+     E: A single message entry, with additional tXX class denoting type (such as t61: "Text message")
+       M: Message body
+       T: Timestamp
+*/
+
+/* -------------- DAYHEADER ----------------- */
+
+div.ChatHistory > div.DayHeader { /* The date-header that's output at the top of each new day */
+	margin-top: 2em;
+	margin-bottom: 1em;
+	font-weight: bold;
+}
+
+
+/* -------------- DAYCONTAINER ----------------- */
+
+div.ChatHistory > div.DayContainer { /* Container holding all the messages/rows for one day */
+	display: block; /* akin to <table> */
+	width: 100%; /* inherit 100% of the ChatHistory container's width (set the log width in ChatHistory, not here) */
+}
+
+
+/* -------------- MESSAGE CHUNK (MC) ----------------- */
+
+div.ChatHistory > div.DayContainer > div.MC { /* "Message-chunk", all messages going in one direction, with SO/SI classes denoting outgoing/incoming direction */
+	display: block; /* akin to <tr> table row, and defaults to 100% as wide as the "<table>" (DayContainer) */
+	padding: 2px; /* applies an overall spacer around the message-chunk */
+	padding-left: 10px; /* gives the name some breathing room to the left */
+	padding-right: 10px; /* gives the timestamp some breathing room to the right */
+	width: auto; /* this is the default value; I'm just specifying it explicitly here to make the hierarchy of width inheritance clearer. this becomes 100% wide automatically due to being a block element. specifying 100% manually will cause overflow in some browsers. */
+}
+
+div.ChatHistory > div.DayContainer > div.MC.SO { /* Status 2: Chunk of outgoing messages */
+	border-top: 1px solid #DADADA;
+	border-bottom: 1px solid #DADADA;
+	background-color: #F4F4F4;
+}
+div.ChatHistory > div.DayContainer > div.MC.SO + div.MC.SO { /* "SO"-chunks that have a preceding "SO"-chunk... */
+	border-top: none !important; /* DO NOT DRAW A TOP-BORDER FOR subsequent "SO"-chunks in a stack of "SO"-chunks (the first chunk in the stack will still draw its top-border as this rule will not match). The reason we're removing the top-border of subsequent "SO"-chunks is to prevent it from "stacking" with the bottom-border of the preceding element and giving the illusion of a 2px separator. */
+}
+
+div.ChatHistory > div.DayContainer > div.MC.SI { /* Status 4: Chunk of incoming messages */
+	background-color: #FFF;
+}
+div.ChatHistory > div.DayContainer > div.MC.SI + div.MC.SI { /* "SI"-chunks that have a preceding "SI"-chunk... */
+	border-top: 1px solid #DADADA; /* This occurs when the person speaking in a conference changes, without the direction changing; as well as when an incoming person changed their name between messages. In those cases, we draw a 1px top-border as a nice separator. This puts the behavior in line with our own "outgoing" chunks on name-changes, as well as sets a precedent that the separators are allowed for all sorts of messages, as a visual separator, rather than just being reserved for "SO"-chunks. */
+}
+
+
+/* -------------- MESSAGE CHUNK: AUTHOR AND MESSAGECOLLECTION (A and C) ----------------- */
+
+div.ChatHistory > div.DayContainer > div.MC > div.A, /* Author of the messages in that chunk */
+div.ChatHistory > div.DayContainer > div.MC > div.C { /* Collection of messages for that chunk */
+	display: table-cell; /* akin to <td> table-cell, meaning a block-element with elastic width (based on the "<tr>" (MC) above) and allowing other cells to exist side-by-side */
+}
+
+div.ChatHistory > div.DayContainer > div.MC > div.A { /* Author of the messages in that chunk */
+	width: 160px;
+	min-width: 160px;
+	
+	padding: 8px 0; /* pads the author-name by the same amount as the per-message padding (see below), to ensure that they line up*/
+	
+	font-weight: bold;
+	color: #777;
+	
+	word-wrap: break-word; /* WRAPPING: Tells browsers that it's okay to break words in the author field to prevent the field from expanding. However, this attribute only works on block-level elements with a fixed width in pixels or percent, it does not work for elements displaying as table-cell or other types. This container is set to table-cell and therefore this attribute has no effect, and is only kept here for reference. However, browsers will still usually wrap the lines on whitespace. The next attribute, however, assures compliance in browsers that support it and would otherwise have expanded the element width: */
+	word-break: break-all; /* WRAPPING: Forces the word to break anywhere, at any character, to prevent the author cell from expanding its width. Attribute does not exist in Firefox. Confirmed working in Safari 3/4/5+ and IE8/9+ where ultra-long names broke at any character to prevent cell expansion, even going so far as to break on characters rather than on whitespace (i.e. two words that would work perfectly well on separate lines will instead be broken mid-word on the second word, but that's fine, it looks good and almost no names are that long!). Firefox, lacking this CSS3 attribute, instead resorts to regular wrapping by breaking on whitespace, which works fine for all names apart from ones with a single, ultra-long word. */
+}
+
+div.ChatHistory > div.DayContainer > div.MC > div.C { /* Collection of messages for that chunk */
+	width: 100%; /* causes the message collection (C) to fill the remaining space after making room for the author element (A) */
+}
+
+
+/* -------------- INDIVIDUAL MESSAGE ENTRIES (E) IN COLLECTION ----------------- */
+
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E { /* One message entry in that collection */
+	width: 100%; /* required for the M (messagebody) child to inherit its relative width value properly. works fine without this line in FF but breaks without it in Safari */
+	
+	padding: 8px 0; /* pad the top/bottom of each message to create some extra space between messages. we use padding rather than margin so that the border will sit at the outer edge. */
+	border-top: 1px dotted #dadada;
+	
+	display: table; /* LAYOUT & WRAPPING: The "E" (entry) containers hold the "M" (message) and "T" (timestamp) for one message. Using regular display: table-cell for the latter two, you would be unable to use word-wrap: break-word, as that attribute REQUIRES a block-level element with a fixed width in pixel. This means you cannot use the "fluid" screen-filling niceness of table-cell rendering along with word-breaking on ultra-long words, as those long words will simply expand the cell instead of being broken up. However, I've devised a solution. It consists of a bit of slightly malformed CSS, but it's 100% legal and supported in every major, modern browser. STEP 1 OF 6: Make the "E" entry line behave like a table rather than as a "block" or "table-cell". */
+	table-layout: fixed; /* LAYOUT & WRAPPING: STEP 2 OF 6: Tell the table to gain the attribute "table-layout: fixed". This magical attribute tells tables that EVEN THOUGH they AUTORESIZE to fit the screen width, they should BEHAVE like a fixed-width table. In english: The attribute makes *EVERY* child table-cell behave as if they had a fixed width value in pixels, even though they may be autoexpanding percentage-based ones. You see where this is going? */
+}
+
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E:first-child { /* If this is the first child in a message collection, do not draw a border */
+	border-top: none;
+}
+
+
+/* -------------- INDIVIDUAL MESSAGE ENTRY: MESSAGEBODY AND TIMESTAMP (M and T) ----------------- */
+
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E > div.M, /* Message entry: Message body */
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E > div.T { /* Message entry: Message timestamp */
+	display: table-cell; /* LAYOUT & WRAPPING: STEP 3 OF 6: Make the message body and timestamps draw as a table-cells with all the autoexpanding "fill page" width flexibility that this gives us. Thanks to the parent "table" having "table-layout: fixed", we are able to allow the message body cell to autoexpand to the browser window's width BUT have it behave programmatically as if it had a fixed width in pixels. LAYOUT-WISE, the fact that we're drawing both of these elements as table-cells mean that they sit nicely side by side, despite this being illegal if this had truly been a table layout, since it's akin to a parentless cell (C above) containing a table (E) which in turn contains two cells without any row specified anywhere. However, since it's CSS, modern browsers have no problem with this whatsoever. Very old browsers dislike it, but I'll get to that in the final STEP6 below. */
+}
+
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E > div.M { /* Message entry: Message body */
+	width: 100%; /* LAYOUT & WRAPPING: STEP 4 OF 6: Causes the message body (M) to fill the remaining space after making room for the timestamp element (T), yet it will behave as if it had a fixed width in pixels thanks to the "table-layout: fixed" attribute on the "parent table" (E). */
+	white-space: pre-wrap; /* LAYOUT & WRAPPING: STEP 5 OF 6: Instructs the browser to preserve (rather than collapse) sequences of multiple whitespace characters, as well as whitespace at the start of lines, but that it's still allowed to wrap lines when needed. This preserves the proper indentation and formatting of messages. It also tells the browser to treat newlines in the source as line-breaks, removing the need for <br />, but we'll still be replacing newlines with <br /> in the output for XML cleanliness. The end result of this attribute is that tab-indented messages will look exactly the way they should. */
+	word-wrap: break-word; /* LAYOUT & WRAPPING: STEP 6 OF 6: The final piece of the puzzle. With a magical "autoexpanding yet behaves as fixed width" now declared (all thanks to the "table" hierarchy and "table-layout: fixed"), we are allowed to use "word-wrap: break-word" to tell the browser to break ultra-long words ANYWHERE in order to maintain the "fixed pixel width" of this "table cell". This magic couldn't have been done without the parent being of type "table" with the "table-layout: fixed" attribute, as "word-wrap: break-word" is only allowed on either block-elements with absolute fixed widths (in percent or pixels), or tables with a fixed layout; we're emulating the latter and it's working beautifully. This is the only way to allow "display: table-cell" style elements to wrap text. This solution has been confirmed now to work in every major browser such as Firefox 3/4/5+, Safari 3/4/5+, IE 8/9 and Chrome (since it's built on Safari's WebKit). I am not bothering with checking older browsers as I frankly don't give a shit. Very old browsers might complain or REQUIRE that "table"-elements have at least one "table-row" element that THEN houses the "table-cell" elements. That's what I meant by this solution being slightly malformed. However, I will not be injecting the necessary stuff to add this mythical "table-row", because that just leads to code/style bloat for no gain, as ALL major, modern browsers from the past near-half-decade are intelligent enough to allow you to have "table-cell" children of "table" containers. Anyone that wants to clone this solution COULD simply design their site around a "table > table-row > table-cell" hierarchy and it should work in older browsers too. Enjoy! */
+}
+
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E > div.T { /* Message entry: Message timestamp */
+	width: 100px;
+	min-width: 100px;
+	
+	text-align: right;
+	color: #ABABAB;
+	
+	font-size: 11px !important; /* make the timestamp a tiny bit smaller than other text */
+}
+
+
+/* --------------------------------------------------------------- */
+
+
+/* Per-type overrides */
+
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t61 { /* Type 61: Regular text message */
+}
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t61 > div.M > div.t61_r { /* "This message has been removed." string */
+	color: #B0B0B0; /* use gray text for this string */
+}
+
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t60 { /* Type 60: /me emotes */
+}
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t60 > div.M { /* Centers all emotes */
+	text-align: center;
+	padding-left: 40px; /* this approximates the way that Skype pads /me emotes to center them with fewer words per line than normal messages */
+	padding-right: 40px;
+}
+
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t68 { /* Type 68: File transfer */
+}
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t68 > div.M > div.t68_h { /* Bold file transfer summary */
+	font-weight: bold;
+}
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t68 > div.M > div.t68_f { /* Indent the individual file lines and increase their top-margin a tiny bit */
+	padding-left: 10px;
+	margin-top: 6px; /* put some space between file entries */
+}
+
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t30 { /* Type 30: Call start */
+}
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t30 > div.M > div.t30_c { /* Call start information */
+	font-weight: bold;
+}
+
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t39 { /* Type 39: Call end */
+}
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t39 > div.M > div.t39_c { /* Call end information */
+	font-weight: bold;
+}
+
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t10 { /* Type 10: Person(s) added to conference (also the start of a conference, along with type 100) */
+}
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t13 { /* Type 13: Person left the conference */
+}
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t10 > div.M,
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t13 > div.M { /* Centers conference joins/leaves (and our outgoing invites) just like we did with /me emotes, and also bolds them and makes them gray */
+	color: #B0B0B0;
+	font-weight: bold;
+	text-align: center;
+	padding-left: 40px;
+	padding-right: 40px;
+}
+
