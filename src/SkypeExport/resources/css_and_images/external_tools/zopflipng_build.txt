@@ -1,0 +1,5 @@
+This is Google's ZopfliPNG, their higly efficient PNG reduction/compression tool, available at:
+https://github.com/google/zopfli
+
+Built using "make zopflipng".
+Version: commit e17d185, from mid-2015.
