@@ -5,6 +5,9 @@ namespace po = boost::program_options;
 
 int main( int argc, char **argv )
 {
+	std::cout << "Skype History Exporter v1.1.0 Stable\n"
+	          << "   WEBSITE: [ https://github.com/Temptin/SkypeExport ]\n"; // helps people find updated versions
+	
 	// FIXME: command line parameters that would be useful to add:
 	// -l 0 / --ltime 0 (defaults to 1, but if set to 0 it changes all localtime() calls to gmtime())
 	// -24h 1 / --24htime 1 (defaults to 0, but if set to 1 it changes the behavior of the time-of-day output to use 24h time; do this by changing all formatTime(1) calls to formatTime(2))
@@ -24,13 +27,13 @@ int main( int argc, char **argv )
 		po::store( po::parse_command_line( argc, argv, desc ), vm );
 		po::notify( vm );
 	}catch(...){ // malformatted input of some kind, so just show the user the help and exit the program
-		std::cout << "Invalid parameters!\n\n" << desc << "\n";
+		std::cout << "\nError: Invalid parameters!\n\n" << desc << "\n";
 		return 1;
 	}
 
 	// show the help and exit if that's what they asked for
 	if( vm.count( "help" ) ){
-		std::cout << desc << "\n";
+		std::cout << "\n" << desc << "\n";
 		return 0;
 	}
 
@@ -41,15 +44,15 @@ int main( int argc, char **argv )
 	outPath.make_preferred();
 	try{
 		if( !fs::exists( dbPath ) || !fs::is_regular_file( dbPath ) ){
-			std::cout << "Database " << dbPath.leaf() << " does not exist at the provided path!\n\n" << desc << "\n";
+			std::cout << "\nError: Database " << dbPath.leaf() << " does not exist at the provided path!\n\n" << desc << "\n";
 			return 1;
 		}
 		if( fs::file_size( dbPath ) == 0 ){
-			std::cout << "Database " << dbPath.leaf() << " is empty!\n\n" << desc << "\n";
+			std::cout << "\nError: Database " << dbPath.leaf() << " is empty!\n\n" << desc << "\n";
 			return 1;
 		}
 		if( fs::exists( outPath ) && !fs::is_directory( outPath ) ){
-			std::cout << "Output path " << outPath << " already exists and is not a directory!\n\n" << desc << "\n";
+			std::cout << "\nError: Output path " << outPath << " already exists and is not a directory!\n\n" << desc << "\n";
 			return 1;
 		}else if( !fs::exists( outPath ) ){
 			// outPath either exists and is a directory, or doesn't exist.
@@ -57,7 +60,7 @@ int main( int argc, char **argv )
 			fs::create_directories( outPath ); // creates any missing directories in the given path.
 		}
 	}catch( const fs::filesystem_error &ex ){
-		std::cout << ex.what() << "\n";
+		std::cout << "\nError: " << ex.what() << "\n";
 		return 1;
 	}
 
@@ -81,8 +84,7 @@ int main( int argc, char **argv )
 		SkypeParser::CSkypeParser sp( dbPath.string() );
 		
 		// display all options (input database, output path, and all names to output (if specified))
-		std::cout << "Skype History Exporter v1.00 Stable\n"
-		          << "  DATABASE: [ " << dbPath << " ]\n"
+		std::cout << "  DATABASE: [ " << dbPath << " ]\n" // note: no newline prefix (aligns it perfectly with version header)
 		          << "    OUTPUT: [ " << outPath << " ]\n";
 		if( outputContacts.size() > 0 ){
 			std::cout << "  CONTACTS: [ \"";
