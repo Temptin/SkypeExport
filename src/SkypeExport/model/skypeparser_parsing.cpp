@@ -437,7 +437,7 @@ namespace SkypeParser
 			thisEvent.row_body_xml = reinterpret_cast<const char *>( sqlite3_column_text( pStmt, 4 ) ); // can be NULL extremely rarely, in which case it will be a NULL pointer; has been observed for types 4, 10, 13, 39, 51, 100 and 110 (WE ONLY USE IT FOR EVENTS 61 AND 60, SO WE CAN SAFELY IGNORE THE RISK OF "NULL")
 			thisEvent.row_timestamp = sqlite3_column_int64( pStmt, 5 ); // NOTE: we're grabbing the timestamps as int64's even though they should fit into ints, just be aware of that. some platforms may use an int32 time_t instead of int64, but it will probably convert just fine.
 			thisEvent.row_edited_timestamp = sqlite3_column_int64( pStmt, 6 ); // is NULL (int 0 due to _int64() converting NULL columns to 0) for every message/event that has not been edited (that will be the majority), in which case it will be set to 0
-			thisEvent.row_guid = sqlite3_column_blob( pStmt, 7 ); // can be NULL extremely rarely (seemingly only for pre-Skype5 events, and only rarely at that), in which case it will be a NULL pointer; has been observed for types 30, 39 and 68 (WE ONLY USE THIS VALUE FOR EVENT 68, SO WE MUST INSERT A NULL CHECK AND AVOID TRYING TO LOOK UP FILE TRANSFER INFO WHERE IT'S NULL; HAS ONLY BEEN OBSERVED FOR A FEW SCATTERED PRE-SKYPE5 EVENTS AND IS SURELY A BUG, AS THOSE TRANSFERS WERE LOGGED PROPERLY AND DID HAVE GUIDS IN THE TRANSFERS TABLE, IT WAS JUST THE MESSAGE GUIDS THAT WERE MISSING)
+			thisEvent.row_guid = sqlite3_column_blob( pStmt, 7 ); // can be NULL extremely rarely (seemingly only for pre-Skype5 events, and only rarely at that), in which case it will be a NULL pointer; has been observed for types 30, 39 and 68 (WE ONLY USE THIS VALUE FOR EVENT 68, SO WE WILL PERFORM A NULL CHECK AND AVOID TRYING TO LOOK UP FILE TRANSFER INFO WHERE IT'S NULL; HAS ONLY BEEN OBSERVED FOR A FEW SCATTERED PRE-SKYPE5 EVENTS AND IS SURELY A BUG, AS THOSE TRANSFERS WERE LOGGED PROPERLY AND DID HAVE GUIDS IN THE TRANSFERS TABLE, IT WAS JUST THE MESSAGE GUIDS THAT WERE MISSING)
 			thisEvent.row_convo_id = sqlite3_column_int( pStmt, 8 );
 			thisEvent.row_identities = reinterpret_cast<const char *>( sqlite3_column_text( pStmt, 9 ) ); // is NULL for every message/event that doesn't make use of the identities field (that will be the majority), in which case it will be a NULL pointer (ONLY USED FOR EVENT TYPE 10, IN WHICH CASE IT IS NEVER NULL, SINCE THE IDENTITIES ARE THE VALUE OF THE EVENT)
 			// clear the asXHTML stringstream's old contents to give this event/row a fresh start
@@ -473,6 +473,7 @@ namespace SkypeParser
 							chatmsg_status:2=outgoing, 4=incoming
 						* my guess is we should rely on type:68 and just ignore chatmsg_type for file transfers. chatmsg_status still shows the actual direction of the transfer.
 						* use guid to look up the transfer details from the Transfers table
+						* outgoing transfers to conferences have multiple entries in the Transfers table (one per recipient), and we'll have to take care to only count each file once, by only counting unique filepaths when determining how many files we're sending out
 						* Transfers table description:
 							filename (text): the plain name of the file, such as "the.phantom.menace.1080p.mkv"		
 							filesize (text, even though you would expect integer, but I guess they did this to avoid having too-small integers to hold the data in-memory?, luckily we can query it as a 64 bit int to have SQLite cast it for us): the size of the file in bytes, such as "2444978"
@@ -488,6 +489,25 @@ namespace SkypeParser
 								12 = you are sending a file to someone, THEY hit cancel. strange, what's different from 7?
 								* There are way too many weird codes. I'll simply go 8 = Completed, Everything Else = Not transferred.
 							NOTE: we COULD print the "filepath" field as part of the log output, as it's a string value showing the source/destination path on OUR disk. this contains stuff like "/Volumes/Secondary OS/path/to/file.jpg"... kinda nice to have but then again the surrounding discussion reveals what the subject was and lets you determine what the files were about, and also by the time you've made the log the files have probably been either moved or deleted in most cases. finally, printing such info would clutter the log files, and storing it as <a href="file://path"> would be nonsensical as A) most paths would be broken and B) the paths could contain sensitive info and leak such info if the user shares the log with someone. logs shouldn't contain "hidden" info like that.
+					type:201=cloud file transfer (new feature as of Skype 6.22+)
+						(DO NOT USE) chatmsg_type:in my testing it has consistently been 7 for incoming, 3 for outgoing, but is very often NULL due to a bug in Skype. the fact that it is 3 for outgoing is quite interesting, since chatmsg_type seems to be the legacy (very old versions of Skype) message type indicator, and type 3 is "regular chat message", which supports my theory (below) that old clients which don't support cloud file transfers will receive these messages as regular chat messages instead. but then again, chatmsg_type 7 is used for both /me emotes and file transfers, so maybe there is no correlation. either way, ignore this chatmsg_type value, since it's completely unreliable.
+						chatmsg_status:use this to determine the direction of the cloud transfer event, as usual
+						body_xml:the XML describing the contents of this cloud file transfer (simply parse it to get a list of files)
+						* this is a new feature where Skype will automatically upload images (no other formats for now) into the cloud and send a tiny link to the recipient, which their Skype client parses and grabs as a thumbnail, with an optional ability to click the image to download and see the full file. the images are stored on the Skype server with an unknown duration, possibly indefinitely since they're moving more and more to the cloud (they're even storing Chat History in the cloud now, and are planning to do *all* message transfers via the cloud in the future and to remove the p2p functionality! goodbye privacy!)
+						* when you drop files into the chat, Skype will use a series of checks to determine whether to use regular file transfer OR if it's a file format that can be sent via its cloud service: it first checks if the file is >0 bytes (if 0 bytes, it's sent as regular file transfer EVEN if the extension is eligible for cloud storage), then it looks at the file EXTENSION to see if it's .JPG or .PNG (those are the only two formats that have been confirmed to be sent via the cloud so far, but others may be available too), and then it IGNORES the actual extension and VALIDATES that the contents are truly EITHER JPG or PNG (meaning that a JPG file named as .png or vice versa WILL work since it passes the independent content validation). if the content validation fails (if the file is corrupt/invalid or contains another unsupported format), the client will display "Sending failed" BUT the event will still be logged in the database identically to a regular successful transfer. it seems likely that the "sending failed" information is either cached somewhere else in the client or retrieved on-the-fly from the cloud link each time the client starts up, so we unfortunately can't get access to the failure indication (or the filesize).
+						* the only extensions that are sent via the cloud at the moment are .jpg and .png (some other obscure extensions may perhaps be sent via the cloud as well, but no others have been found); ALL other formats are sent as regular file transfers (verified with extensionless files and .bmp, .gif, .mp4, .mp3, .pdf, .txt so far)
+						* older clients can still RECEIVE cloud images, BUT they will almost certainly NOT log them to their databases as type 201 (they'll most likely log them as "regular text message of type 61"), and they'll DEFINITELY only display the "To view this shared photo, go to: https://api.asm.skype.com/..." legacy link embedded in the message, since they wouldn't understand the other tags.
+						* FIXME: check how legacy clients log the incoming cloud transfers, and consider adding "pretty" support for them in case they're not logging these events as type 201. a possible strategy, if they're saving as type 68 but with identical body_xml, is to do a pre-check "if type=68 & body_xml starts with <URIObject, just set thisEvent.row_type to 201 instead" and then let the exporter do its regular type 201 parsing as usual with the newly corrected event type.
+						* if you drop MULTIPLE cloud-capable images into the chat at once, they are each sent as INDIVIDUAL type 201 messages; currently Skype doesn't send more than one per message, and it PROBABLY NEVER will since each message contains legacy links (as described above) and it would quickly get messy if multiple images/links were contained in a single message.
+						* when doing an outgoing cloud file transfer to a conference, or receiving one via a conference, there is only a single entry in the database. this new event doesn't have the issue that regular file transfers (type 68) had in which each filename+recipient pair was individually logged in the Transfers table. that simplifies parsing, since we can be sure that each type201 event is completely unique and that there's no duplication going on.
+						* information about all sent/received cloud images is stored in the "MediaDocuments" table (which also houses preview thumbnails for web links, youtube videos, etc), but it's a useless table since there's no id/guid linking the MediaDocuments entry to the actual cloud transfer event entry in the Messages table, AND the MediaDocuments table just repeats the information that's available in the body_xml anyway. NOTE: currently the MediaDocuments table creates entries of type "UrlPreview.1", "UrlPreview.1/video" and "Picture.1", which is a good indication that the "Picture.1" value in body_xml of a cloud image transfer is not indicating "the first image in the message", but rather "an image sent using method 1", so they may add other methods in the future if there's ever a need ("Picture.2", etc). this theory is further supported by the "imgt1" (image type 1?) suffix in all the URLs to the cloud-stored images.
+						* the body_xml contents for incoming and outgoing messages are practically identical, but there are platform differences in what fields are included and how the fields are ordered. here are two example messages:
+						* body_xml for an outgoing message from a Mac to a PC (the {CENSORED} parts are where the unique ID of the image resides): <URIObject type="Picture.1" uri="https://api.asm.skype.com/v1//objects/{CENSORED}" url_thumbnail="https://api.asm.skype.com/v1//objects/{CENSORED}/views/imgt1"><Title></Title><Description></Description>To view this shared photo, go to: https://api.asm.skype.com/s/i?{CENSORED}<meta type="photo" originalName="Screen Shot 2015-05-30 at 12.39.03 AM.png"/><OriginalName v="Screen Shot 2015-05-30 at 12.39.03 AM.png"/></URIObject>
+						* body_xml for an incoming message from a PC to a Mac: <URIObject type="Picture.1" uri="https://api.asm.skype.com/v1//objects/{CENSORED}" url_thumbnail="https://api.asm.skype.com/v1//objects/{CENSORED}/views/imgt1">To view this shared photo, go to: <a href="https://api.asm.skype.com/s/i?{CENSORED}">https://api.asm.skype.com/s/i?{CENSORED}</a><OriginalName v="aZxPpWQ_700b_v1.jpg"/><meta type="photo" originalName="aZxPpWQ_700b_v1.jpg"/></URIObject>
+						* the differences are simple platform and/or version differences in how the Skype client generates the outgoing message. note the differences in formatting, ordering of the fields, included fields (the Mac sends useless, empty Title and Description tags, for example), as well as the differences in how the "view the shared photo" link is sent (one platform uses <a> and the other doesn't)
+						* NOTE: there is no "original file size" information here (nor is there any in the MediaDocuments table), and there is no "sending failed" information anywhere either, so we will have to output all cloud transfers as if they succeeded and without any filesize. additionally, since cloud transfers are sent directly to Skype's servers, there's no such thing as canceling an outgoing transfer or declining an incoming transfer, so there is no such status either.
+						* the best parsing strategy seems to be to go for the lowest-common-denominator: the file name field, which always exists and is consistent (From Mac Skype: <OriginalName v="Screen Shot 2015-05-30 at 12.39.03 AM.png"/>, From PC Skype: <OriginalName v="aZxPpWQ_700b_v1.jpg"/>). so if the message is of type 201, extract *all* "OriginalName" tags and display a list of filenames (without filesize, obviously). by parsing ALL OriginalName fields, we should also hopefully get automatic support for multiple-cloud-files-per-message if Skype ever goes in that direction in the future
+						* note: it is SAFE to use "" as the regex delimiters when scanning the OriginalName tag, because any filenames with quotes (double or single) are properly escaped to their HTML entities by Skype regardless of originating platform, such as: test"quotes'_and_unicodeåäö.png which was sent from Mac Skype as: <OriginalName v="test&quot;quotes&apos;_and_unicodeåäö.png"/> (and I've confirmed that Windows Skype is equally intelligent and escapes any special quotes/characters)
 					type:30=call start (same _type and _status as 39)
 					type:39=call end
 						chatmsg_type:18 (always)
@@ -519,9 +539,9 @@ namespace SkypeParser
 								* this event only occurs inside conference convo_id streams, so no need to check the isConference flag.
 				* NOTE: outgoing means from YOU to the partner --->, and incoming means from the PARTNER to you <---
 				
-				author (text): the SkypeID of the person that wrote the message (such as andy.norin). will NEVER be null.
+				author (text): the SkypeID of the person that wrote the message (such as grince.farbgold). will NEVER be null.
 				
-				from_dispname (text): the active displayname of the person that wrote the message (such as Anders Norin). will NEVER be null. FIXME: are < and > converted to html entities already?
+				from_dispname (text): the active displayname of the person that wrote the message (such as Grince Farbgold). will NEVER be null. FIXME: are < and > converted to html entities already?
 				
 				body_xml (text): the text that was written. it's fully xml-compliant, so stuff like apostrophes are &apos; (well, there IS a flag called body_is_rawxml which is either 1 or null, but I had a look and the only time it has been null is the times when body_xml has been either empty or null itself, so we can safely assume that body_xml is ALWAYS encoded as safe xml). NOTE: Skype leaves ALL whitespace intact EXCEPT trailing whitespace; so any trailing spaces, tabs or newlines and other types of whitespace are ALL stripped when the message is sent/stored in the DB. this does not apply to prepended whitespace, which is kept as-is!
 				
@@ -529,7 +549,7 @@ namespace SkypeParser
 				
 				edited_timestamp (integer): null most of the time, but when it contains a value it gives the time of the last edit to the message
 				
-				(NOT USED) dialog_partner (text): the exact, permanent username/loginname (NOT their pretty "full display name") of the person you are chatting with in single-person chats. always has the same value even when THEY send YOU a message. example: "andy.norin". this value is null in multiperson chats (conferences), apart from the very first message in a conference where it seems to denote the person you were chatting with when the conference was created. NOTE: There is a bug in Skype 6 (or higher) which sometimes stores a NULL instead of the proper dialog_partner into the database, which means that it's no longer reliable to use this field for ANYTHING. We've switched to convo_id scanning instead, with a special exception to also catch Type10 ("added to conference") events.
+				(NOT USED) dialog_partner (text): the exact, permanent username/loginname (NOT their pretty "full display name") of the person you are chatting with in single-person chats. always has the same value even when THEY send YOU a message. example: "grince.farbgold". this value is null in multiperson chats (conferences), apart from the very first message in a conference where it seems to denote the person you were chatting with when the conference was created. NOTE: There is a bug in Skype 6 (or higher) which sometimes stores a NULL instead of the proper dialog_partner into the database, which means that it's no longer reliable to use this field for ANYTHING. We've switched to convo_id scanning instead, with a special exception to also catch Type10 ("added to conference") events.
 				
 				guid (blob): this is a globally unique identifier for the message. we only need it when parsing filetransfer data, as the filetransfer information is stored under this guid.
 				
@@ -544,6 +564,7 @@ namespace SkypeParser
 			case 61: // regular text message
 			case 60: // /me emotes
 			case 68: // file transfer
+			case 201: // cloud file transfer
 			case 30: // call start
 			case 39: // call end
 			case 10: // person(s) added to conference
@@ -728,6 +749,54 @@ namespace SkypeParser
 					}
 					break;
 					} // end of type68 (file transfer) parsing
+				case 201: // cloud file transfer
+					{
+					// note: cloud transfer events lack file size information, "sending failed" indication, and have no ability to cancel/decline, etc; there's really only a single piece of usable information: the original filename of the sent/received file. also, currently Skype is only sending 1 cloud file per message/event (even when dropping multiple files on the window), but we extract *all* filenames just in case they add support for multiple files per message in the future
+					// since these types of transfers cannot fail, we will simply output them as if they were a regular file transfer - but without any file size information, and with a "(Cloud File Transfer)" tag at the end of the filename instead of a size. FIXME: in the future we'll want to remove that tag IF Skype decides to turn *all* transfers into cloud-based (for now it's just doing it for a few image formats, and it'll probably stay that way). it would be annoying to see it all the time if they decide to switch to it entirely, but for now it's a good indicator about the difference between regular transfers and cloud-based transfers in your exported history.
+					
+					// prepare the container that will hold individual file information
+					std::stringstream fileInfoXHTML( std::stringstream::in | std::stringstream::out ); // this is used for building the XHTML string containing information about all files for this transfer
+					uint32_t filecount = 0; // the number of files being transferred
+					
+					// we use a regex to find *all* OriginalName tags with v properties (the original filenames)
+					std::string bodyXML = thisEvent.row_body_xml; // we have no choice but to do a copy, as the original is a dynamically allocated char array
+					static const boost::regex rgxOriginalNames( "<OriginalName[^>]*? v=\"([^\"]+)\"" );
+					std::string::const_iterator start, end;
+					start = bodyXML.begin();
+					end = bodyXML.end();
+					boost::match_results<std::string::const_iterator> what; // holds the individual matches
+					static const boost::match_flag_type flags = boost::regex_constants::match_default | boost::regex_constants::format_perl;
+					while( boost::regex_search( start, end, what, rgxOriginalNames, flags ) ){
+						// what[0] = the full regex match (including non-capture groups), what[1] = just the first subcapture
+						// in our case, what[1] = the filename of the current sent/received file
+						
+						// generate the XHTML-line for the file and append the file's information to the XHTML line storage
+						// NOTE: we're ALWAYS logging these cloud events with an "OK" icon, since there's no failure/success information stored in the event information (not even when the "Sending failed" error happens, meaning when the upload to the cloud failed). we are also indicating that it is a "Cloud File Transfer" since we have no filesize information.
+						++filecount;
+						fileInfoXHTML << "<div class=\"t201_f\">" << "<div class=\"icons ft_ok\"><span>OK</span></div>" << " " << what[1] << " (Cloud File Transfer)" << "</div>";
+						
+						// move the start iterator beyond the current match so we continue scanning the rest of the string
+						start = what[0].second; // what[0].second = the position of the end of the current full regex match
+					}
+					
+					// generate the file count summary ("X files")
+					std::stringstream countSummaryXHTML( std::stringstream::in | std::stringstream::out );
+					if( filecount == 1 ){ countSummaryXHTML << "a file"; }
+					else{ countSummaryXHTML << filecount << " files"; }
+					
+					// save the header line
+					thisEvent.asXHTML << "<div class=\"t201_h\">";
+					if( !isConference ){ // regular chats
+						thisEvent.asXHTML << ( thisEvent.direction == 4 ? std::string( thisEvent.row_from_dispname ) + " is sending you " + countSummaryXHTML.str() + ":" : std::string( "Sending " ) + countSummaryXHTML.str() + " to " + lastDialogPartner.dispName + ":" );
+					}else{ // conferences
+						thisEvent.asXHTML << ( thisEvent.direction == 4 ? std::string( thisEvent.row_from_dispname ) + " is sending " + countSummaryXHTML.str() + " to the conference:" : std::string( "Sending " ) + countSummaryXHTML.str() + " to the conference:" );
+					}
+					thisEvent.asXHTML << "</div>";
+					
+					// save the fileinfo lines
+					thisEvent.asXHTML << fileInfoXHTML.str();
+					break;
+					} // end of type201 (cloud file transfer) parsing
 				case 30: // call start
 				case 39: // call end
 					{

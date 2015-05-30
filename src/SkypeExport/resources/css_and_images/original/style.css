@@ -726,6 +726,16 @@ div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t68 > div.M > div.t6
 	margin-top: 6px; /* put some space between file entries */
 }
 
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t201 { /* Type 201: Cloud file transfer */
+}
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t201 > div.M > div.t201_h { /* Bold file transfer summary */
+	font-weight: bold;
+}
+div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t201 > div.M > div.t201_f { /* Indent the individual file lines and increase their top-margin a tiny bit */
+	padding-left: 10px;
+	margin-top: 6px; /* put some space between file entries */
+}
+
 div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t30 { /* Type 30: Call start */
 }
 div.ChatHistory > div.DayContainer > div.MC > div.C > div.E.t30 > div.M > div.t30_c { /* Call start information */
