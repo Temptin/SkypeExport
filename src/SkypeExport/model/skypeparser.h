@@ -53,6 +53,7 @@ namespace SkypeParser
 		std::string formatTime( const struct tm *timestamp_tm, uint8_t format );
 		std::string formatBytes( uint64_t bytes, bool allowZeroTrail );
 		std::string formatDuration( uint32_t duration_sec );
+		std::string getUTCOffset();
 		std::string skypeMessageToXHTML( const char *msgText );
 
 	public:

@@ -170,6 +170,43 @@ namespace SkypeParser
 
 		return durationOutput.str();
 	}
+	
+	/*
+		Calculates the UTC offset of the user's machine, such as -07:00, or +02:00, or +09:30 (such as mid-Australia), or even +00:00 (if they live in the GMT/UTC timezone *and* DST is currently not active, or Iceland with DST active).
+		If DST (Daylight Savings Time) is active, it gives you the offset with DST's +1 hour correctly applied.
+		This function has been confirmed to work correctly for every timezone in the world, both with and without DST.
+	*/
+	std::string CSkypeParser::getUTCOffset()
+	{
+		// convert the current local clock time to a UTC timestamp
+		time_t currentTimestamp_UTC = time( NULL ); // grab the current unix timestamp for our current local computer time (UTC seconds since the epoch (January 1st, 1970)).
+		
+		// calculate what the UTC timestamp *would have been* if the current *local* computer time had been mistakenly set to the current *UTC* time instead, thus giving us a new "incorrect" timestamp which actually contains the local vs UTC timestamp difference! genius!
+		struct tm *timeInfo; // pointer to the global "tm" struct; we don't need to make any local copy since we use the results immediately
+		timeInfo = gmtime( &currentTimestamp_UTC ); // converts the local clock to a GMT/UTC clock "tm" struct instead, which means that if our *local* time is UTC+2, the time in the resulting object would be 2 hours *earlier* instead
+		time_t currentTimestamp_LocalDiff = mktime( timeInfo ); // convert the GMT/UTC clock "tm" struct back to a timestamp, which becomes interpreted as local time again during the conversion, and thereby gives us the UTC timestamp for the local time *difference* compared to UTC
+		
+		// calculate the offset from UTC in hours and minutes, adjusted for daylight savings time if active
+		// NOTE: DST means turning the clock forwards by an hour, thus moving America closer to UTC and Eastern Europe further away from UTC; this is the correct DST method regardless of whether you're east or west of UTC.
+		// NOTE: we don't need to do floating-point math since we only care about whole hours and whole minutes
+		int32_t utcOffset = ( currentTimestamp_UTC - currentTimestamp_LocalDiff ); // 3600 for UTC+1, -3600 for UTC-1, 34200 for UTC+9:30, etc
+		if( timeInfo->tm_isdst > 0 ){ utcOffset += 3600; } // if tm_isdst is greater than zero, it means that DST is active on the user's computer and we need to add an hour
+		bool utcOffset_isNegative = ( utcOffset < 0 ? true : false ); // determine whether the offset was negative or positive
+		utcOffset = abs( utcOffset ); // convert the difference to a positive number (-7200 becomes 7200) so that it becomes much easier to handle during output
+		uint32_t utcOffset_hours = utcOffset / 3600;
+		uint32_t utcOffset_minutes = ( utcOffset % 3600 ) / 60;
+		
+		// generate the output string such as -07:00, or +02:00, or +09:30, or +00:00
+		std::stringstream offsetOutput( std::stringstream::in | std::stringstream::out ); // holds the UTC offset string as it's being constructed
+		offsetOutput << ( utcOffset_isNegative ? "-" : "+" ) // whether it's a positive or negative offset
+		             << ( utcOffset_hours < 10 ? "0" : "" ) // hours 0-9 need zero-padding
+		             << utcOffset_hours
+		             << ":"
+		             << ( utcOffset_minutes < 10 ? "0" : "" ) // minutes 0-9 need zero-padding
+		             << utcOffset_minutes;
+		
+		return offsetOutput.str();
+	}
 
 	/*
 		Takes a Skype message XML string and converts it and all entities to XHTML.
@@ -299,14 +336,14 @@ namespace SkypeParser
 			            << "	<div class=\"HistoryHeader\">\n" // starts the history-header which has some brief info about the generated log
 			            << "		<div class=\"SkypeLogo\"></div>\n" // the Skype logo
 			            << "		<div class=\"LogHeaderLine1\">Chat History with <a href=\"skype:" << partnerID << "\">" << getDisplayNameAtTime( partnerID, -1 ) << " (" << partnerID << ")</a></div>\n" // clickable name for the person whose history you're exporting (always use the absolute latest displayname for the header)
-			            << "		<div class=\"LogHeaderLine2\">Created on " << formatTime( &exportTime_tm, 0 ) << " at " << formatTime( &exportTime_tm, timeFormat ) << ".</div>\n" // the log creation date // FIXME: it would be NICE adding a sentence "All times are in UTC+1" (including any active DST at the time of log generation), maybe add that later...
+			            << "		<div class=\"LogHeaderLine2\">Created on " << formatTime( &exportTime_tm, 0 ) << " at " << formatTime( &exportTime_tm, timeFormat ) << ". All times are UTC" << ( timeReference == 1 ? getUTCOffset() : "+00:00" ) << ".</div>\n" // the log creation date
 			            << "	</div>\n"; // closes the history-header
 		}else{ // conference
 			xhtmlOutput << "<div id=\"conf_" << convoID << "\" class=\"ChatHistory ConferenceHistory\">\n" // starts the main log-container for this conference (contains anchor-ID)
 			            << "	<div class=\"HistoryHeader\">\n" // starts the history-header which has some brief info about the generated log
 			            << "		<div class=\"SkypeLogo\"></div>\n" // the Skype Conference logo
 			            << "		<div class=\"LogHeaderLine1\">Conference History for \"" << getConferenceTitle( convoID ) << "\"</div>\n" // title of the conference room, grabbed from the database
-			            << "		<div class=\"LogHeaderLine2\">Created on " << formatTime( &exportTime_tm, 0 ) << " at " << formatTime( &exportTime_tm, timeFormat ) << ".</div>\n" // the log creation date // FIXME: it would be NICE adding a sentence "All times are in UTC+1" (including any active DST at the time of log generation), maybe add that later...
+			            << "		<div class=\"LogHeaderLine2\">Created on " << formatTime( &exportTime_tm, 0 ) << " at " << formatTime( &exportTime_tm, timeFormat ) << ". All times are UTC" << ( timeReference == 1 ? getUTCOffset() : "+00:00" ) << ".</div>\n" // the log creation date
 			            << "	</div>\n"; // closes the history-header
 		}
 
