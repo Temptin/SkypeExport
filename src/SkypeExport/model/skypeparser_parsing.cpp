@@ -311,12 +311,17 @@ namespace SkypeParser
 		clock_start = clock();
 
 
-		// If this is a 1on1 chat, we first need to figure out the permanent convo_id for the conversation with that person
+		// If we are being asked to export a 1on1 chat, we first need to figure out the permanent convo_id for the conversation with that person
 		if( !isConference ){
 			// prepare statement
 			rc = sqlite3_prepare_v2( mDB, "SELECT id FROM Conversations WHERE (identity=? AND type=1) LIMIT 1", -1, &pStmt, NULL ); // note: type 1 is regular 1on1 conversation and type 2 is conference; and we actually don't even need to limit the statement since there will only ever be one match for this particular query
 			if( rc != SQLITE_OK ){
+				// free up pre-compiled SQL statements
+				sqlite3_finalize( pTransferInfoStmt );
+				sqlite3_finalize( pCallInfoStmt );
 				sqlite3_finalize( pStmt );
+				
+				// if the SQL statement failed to execute, that's an unrecoverable error...
 				throw std::runtime_error( sqlite3_errmsg( mDB ) );
 			}
 			
@@ -328,8 +333,13 @@ namespace SkypeParser
 				// grab column in result row
 				convoID = sqlite3_column_int( pStmt, 0 ); // convo_id of the main 1on1 conversation with that person
 			}else{
+				// free up pre-compiled SQL statements
+				sqlite3_finalize( pTransferInfoStmt );
+				sqlite3_finalize( pCallInfoStmt );
 				sqlite3_finalize( pStmt );
-				throw std::runtime_error( "unable to locate Conversation ID in database" );
+				
+				// NOTE: we were unable to find any 1on1 chat with this person's SkypeID, which means that you've only encountered them in a conference. they were most likely added to a conference by one of your mutual friends. since there's no 1on1 history, simply return a hidden HTML comment string stating that there is no 1on1 chat with this person
+				return "<!-- There is no 1on1 chat history for this person. -->";
 			}
 			
 			// free up statement
