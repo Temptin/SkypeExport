@@ -183,13 +183,13 @@ namespace SkypeParser
 		std::string dispName = "";
 		
 		// builds the appropriate query based on what we're trying to look up
-		// NOTE: we do not need "AND from_dispname NOT NULL" in the where-clause because it is NEVER null
+		// NOTE: we do the "IS NOT NULL" check to protect against the increasingly common NULL corruption in Skype's databases
 		if( timestamp == 0 ){ // earliest name
-			nameQuery = "SELECT from_dispname FROM Messages WHERE (author=?) ORDER BY timestamp ASC LIMIT 1";
+			nameQuery = "SELECT from_dispname FROM Messages WHERE (author=? AND from_dispname IS NOT NULL) ORDER BY timestamp ASC LIMIT 1";
 		}else if( timestamp == -1 ){ // latest name
-			nameQuery = "SELECT from_dispname FROM Messages WHERE (author=?) ORDER BY timestamp DESC LIMIT 1";
+			nameQuery = "SELECT from_dispname FROM Messages WHERE (author=? AND from_dispname IS NOT NULL) ORDER BY timestamp DESC LIMIT 1";
 		}else{ // name at specific point in time, and allows you to overshoot their latest timestamp and still grab their correct name at that time (NOTE: if this fails, we will return the earliest name instead, if possible, since it failing means that the earliest name is the next in sequence; this will fail quite a lot at the beginning of conferences where unknown people are invited via "identities")
-			nameQuery = "SELECT from_dispname FROM Messages WHERE (author=? AND timestamp<=?) ORDER BY timestamp DESC LIMIT 1";
+			nameQuery = "SELECT from_dispname FROM Messages WHERE (author=? AND from_dispname IS NOT NULL AND timestamp<=?) ORDER BY timestamp DESC LIMIT 1";
 		}
 
 		// prepare statement
@@ -216,7 +216,7 @@ namespace SkypeParser
 
 		// if dispName is "", it means that nothing was found. if timestamp is > 0 it means a specific timestamp was required. in that case, we should re-try the query using "earliest name" instead.
 		if( dispName == "" && timestamp > 0 ){ // no match, and we had asked for a specific timestamp
-			return getDisplayNameAtTime( skypeID, 0 ); // re-queries with "earliest name" method instead, which is guaranteed to solve cases where we're asking about their name slightly before their name appears in the log
+			return getDisplayNameAtTime( skypeID, 0 ); // does a single re-query with "earliest name" method instead, which is guaranteed to solve cases where we're asking about their name slightly before their name appears in the log
 		}else{ // query succeeded, or query failed but was not of "timestamp > 0" type
 			// return result
 			return dispName;
