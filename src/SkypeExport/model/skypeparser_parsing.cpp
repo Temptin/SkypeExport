@@ -283,7 +283,7 @@ namespace SkypeParser
 
 		// create pre-compiled statements for file transfer and call information lookups, since a large database can contain thousands of file transfers and will therefore be a significant bottleneck if it has to constantly re-build the statement during the lifetime of the event it's parsing.
 		sqlite3_stmt *pTransferInfoStmt, *pCallInfoStmt;
-		sqlite3_prepare_v2( mDB, "SELECT filename, filesize, filepath, partner_dispname, status FROM Transfers WHERE chatmsg_guid=? ORDER BY id ASC", -1, &pTransferInfoStmt, NULL ); // NOTE: the parsing of these statements will never fail, since it's just doing parsing here (not actual evaluation), so no need for error checking
+		sqlite3_prepare_v2( mDB, "SELECT filename, filesize, filepath, partner_dispname, status FROM Transfers WHERE (chatmsg_guid=?) ORDER BY id ASC", -1, &pTransferInfoStmt, NULL ); // NOTE: the parsing of these statements will never fail, since it's just doing parsing here (not actual evaluation), so no need for error checking
 		sqlite3_prepare_v2( mDB, "SELECT duration FROM Calls WHERE (conv_dbid=? AND begin_timestamp<=?) ORDER BY begin_timestamp DESC LIMIT 1", -1, &pCallInfoStmt, NULL );
 
 
@@ -595,6 +595,7 @@ namespace SkypeParser
 				bool makeNewContainer = false;
 				if( thisEvent.direction == 4 ){ // INCOMING EVENTS
 					if( isConference && thisEvent.row_author != lastDialogPartner.skypeID ){ // INCOMING EVENTS IN CONFERENCES ONLY: if the INCOMING event author (author=SkypeID) changed (even though the direction MAY not have switched over from incoming to outgoing yet), then we'll need a new messagecontainer; this catches multiple incoming participants in a row in a conference chat. we never perform this lookup during regular 1on1 chats, as we've already initialized it to a static skypeid value if it's a 1on1 chat.
+						// FIXME/WARNING: due to random and *extremely rare* database corruption in Skype 6/7+, the "author" field can sometimes be NULL. luckily we only check the "row_author" field during conference scanning, and we only use it to discover when to make new message-direction containers, which means that it doesn't matter if it's NULL. moreover, even though we're setting the lastDialogPartner.skypeID property here to a possibly-NULL value, we don't actually *use* that ".skypeID" property *anywhere* in the code; we just use the dispName property everywhere, so no harm is done by "NULL authors" as the code looks right now! just be aware that if we ever need to use .skypeID in the future, some method of handling NULL authors in conferences would have to be devised, and it *won't* be easy, since a NULL author means we have no idea which conference partner sent the event.
 						makeNewContainer = true;
 						lastDialogPartner.skypeID = thisEvent.row_author; // 1on1: already contains the static skypeid for the person you are talking to. conference: contains the last INCOMING skypeid, to allow us to notice multiple people.
 					}
@@ -683,7 +684,7 @@ namespace SkypeParser
 						sqlite3_reset( pTransferInfoStmt ); // NOTE: this will not clear any existing bindings. to unset bindings you use sqlite3_clear_bindings(). we won't bother with that and will instead simply re-bind the parameter below.
 
 						// bind parameters
-						// pTransferInfoStmt = "SELECT filename, filesize, filepath, partner_dispname, status FROM Transfers WHERE chatmsg_guid=? ORDER BY id ASC"
+						// pTransferInfoStmt = "SELECT filename, filesize, filepath, partner_dispname, status FROM Transfers WHERE (chatmsg_guid=?) ORDER BY id ASC"
 						sqlite3_bind_blob( pTransferInfoStmt, 1, &transferguid, SKYPEPARSER_GUID_SIZE * sizeof( uint8_t ), SQLITE_STATIC ); // SQLITE_STATIC means that SQLite will NOT copy the contents of transferguid when it binds the variable, so we must be VERY careful not to free or modify that memory before we're done using this statement!
 
 						// look up all file entries involved in the transfer via the Transfers table, going by the transfer's GUID.
