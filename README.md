@@ -20,7 +20,7 @@ Supports _all_ features of the Skype protocol thanks to careful reverse-engineer
 * Removed messages ("This message has been removed.").
 * Sender of a message (with their exact name at that point in time).
 * Web links.
-* Timestamps.
+* Timestamps (with your choice of 12/24h time and optional UTC).
 * Emoticons (all of them).
 * All country flag icons.
 * Detection and output of Display Name changes for yourself and others without needing a change in message-chunk direction (not even Skype does this!).
@@ -37,6 +37,14 @@ Supports _all_ features of the Skype protocol thanks to careful reverse-engineer
 
 * Windows compilation is done using Visual Studio or the compiler of your choice.
 * Mac OS X compilation is done using the included shell script.
+
+## Quick Guide
+
+* Open a Terminal (OS X) or Command Prompt (Windows) and navigate to the folder containing your _unzipped_ SkypeExport binary. For example, if it's stored in your Downloads folder, you would type "cd Downloads" to navigate there.
+* Next, run the appropriate export command for your platform below (and remember to change your_username to your actual Skype ID).
+* (Windows) SkypeExport.exe --db "%AppData%\Skype\your_username\main.db"
+* (Mac) ./SkypeExport --db ~/Library/Application\ Support/Skype/your_username/main.db
+* To see all possible export options, simply add --help to the command to see a list of extra features. The most commonly used optional feature is "--timefmt 24h" which switches the output to 24 hour time format.
 
 ## History & The Future
 

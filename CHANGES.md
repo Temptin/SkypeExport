@@ -1,5 +1,15 @@
 # Release History
 
+## SkypeExport v1.2.0 Stable (June 15th, 2015)
+
+Brings you several great, new time-related features along with a few minor general enhancements.
+
+* (Feature) Added a new "--timefmt" command line switch with options for "12h" (default), "24h", "utc12h" and "utc24h". This allows you to change the format of all history timestamps, as well as optionally switching everything to UTC time instead.
+* (Enhancement) Exported histories now show the active UTC offset, such as "All times are UTC+02:00" or "UTC-04:00" or "UTC+09:30", and so on... If you're telling it to output in UTC, or you're in a timezone which is identical to the current UTC time (such as Iceland with DST active), it will say "UTC+00:00". This means that regardless of the output time format, the reader will know exactly what time offsets are being used.
+* (Bug Fix) Improved the contact name and display name scanners to avoid yet another extremely rare Skype 6+ bug, wherein it sometimes stores blank names in its database. We now simply skip any blank names in the database and retrieve their nearest valid name instead.
+* (Bug Fix) Now handles the rare case of encountering a contact who doesn't have any 1on1 chat. This can happen when you've only seen that person in a conference, such as when a mutual friend added them to a group chat and you've never talked to that person directly.
+
+
 ## SkypeExport v1.1.0 Stable (May 30th, 2015)
 
 This release is recommended for all users, as it gives the emoticons a modern graphical overhaul and adds support for Skype's new cloud-based file transfers.
