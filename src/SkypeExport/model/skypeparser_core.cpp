@@ -62,7 +62,8 @@ namespace SkypeParser
 		/* Users */
 
 		// prepare statement (NOTE: the reason we don't use the Contacts table is that it contains spam-contacts and people you just saw in people-search, as well as people you've added but never talked to (which would be pointless to output). sure, there's the buddystatus field, but that still doesn't ensure that it's someone you've actually had a single conversation with. therefore, the below statement is far better, since it truly grabs everyone you've had contact with at least once.)
-		rc = sqlite3_prepare_v2( mDB, "SELECT DISTINCT author FROM Messages ORDER BY author ASC", -1, &pStmt, NULL ); // ensures that our list will be sorted alphabetically
+		// NOTE: we do the "IS NOT NULL" check to protect against a corrupt Skype database with NULL author in some messages
+		rc = sqlite3_prepare_v2( mDB, "SELECT DISTINCT author FROM Messages WHERE (author IS NOT NULL) ORDER BY author ASC", -1, &pStmt, NULL ); // ensures that our list will be sorted alphabetically
 		if( rc != SQLITE_OK ){
 			sqlite3_finalize( pStmt );
 			throw std::runtime_error( sqlite3_errmsg( mDB ) );
@@ -91,14 +92,14 @@ namespace SkypeParser
 		/* Conferences: Phase 1 (IDs and Titles) */
 		
 		// prepare statement to get the id and title of all conferences
-		rc = sqlite3_prepare_v2( mDB, "SELECT id, displayname FROM Conversations WHERE type=2", -1, &pStmt, NULL );
+		rc = sqlite3_prepare_v2( mDB, "SELECT id, displayname FROM Conversations WHERE (type=2)", -1, &pStmt, NULL );
 		if( rc != SQLITE_OK ){
 			sqlite3_finalize( pStmt );
 			throw std::runtime_error( sqlite3_errmsg( mDB ) );
 		}
 
 		// iterate through all conferences and store their ids and titles (we will add the participant skypeIDs in the next step)
-		// note: if the user has never been in any conferences, this won't execute and no conferences will be added to mSkypeConferences
+		// NOTE: if the user has never been in any conferences, this won't execute and no conferences will be added to mSkypeConferences
 		skypeConferences_t::iterator skypeConferences_it;
 		while( sqlite3_step( pStmt ) == SQLITE_ROW ){
 			// grab columns in current row
@@ -122,7 +123,7 @@ namespace SkypeParser
 		/* Conferences: Phase 2 (Participants) */
 
 		// only perform this step if the conference scan actually found any conferences in the database
-		// note: this extra verification fixes the error where people who have never been in any conferences got an error saying "syntax error near ")"", since it was building a "WHERE ()" statement without any conditions in that case. besides, there's no participants to look up if they haven't got any conferences, so no need to run this code for those users! ;-)
+		// NOTE: this extra verification fixes the error where people who have never been in any conferences got an error saying "syntax error near ")"", since it was building a "WHERE ()" statement without any conditions in that case. besides, there's no participants to look up if they haven't got any conferences, so no need to run this code for those users! ;-)
 		if( !mSkypeConferences.empty() ){
 			// construct a statement containing the IDs for every conference we've discovered (the Participants table contains an accurate, clean list of every skypeID that was ever added to that conference, no matter how they were added and whether they said something or not, so it's perfect for our needs)
 			std::stringstream confParticipantQuery( std::stringstream::in | std::stringstream::out );

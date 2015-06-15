@@ -539,7 +539,7 @@ namespace SkypeParser
 								* this event only occurs inside conference convo_id streams, so no need to check the isConference flag.
 				* NOTE: outgoing means from YOU to the partner --->, and incoming means from the PARTNER to you <---
 				
-				author (text): the SkypeID of the person that wrote the message (such as grince.farbgold). will NEVER be null.
+				author (text): the SkypeID of the person that wrote the message (such as grince.farbgold). is NEVER null on Skype 4/5 databases, but due to random corruption in Skype 6/7+ it will SOMETIMES be null, so always be careful when using this value; it is there nearly 100% of the time but just be aware of this.
 				
 				from_dispname (text): the active displayname of the person that wrote the message (such as Grince Farbgold). will NEVER be null. FIXME: are < and > converted to html entities already?
 				
