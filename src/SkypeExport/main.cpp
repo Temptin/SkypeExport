@@ -7,10 +7,6 @@ int main( int argc, char **argv )
 {
 	std::cout << "Skype History Exporter v1.1.0 Stable\n"
 	          << "   WEBSITE: [ https://github.com/Temptin/SkypeExport ]\n"; // helps people find updated versions
-	
-	// FIXME: command line parameters that would be useful to add:
-	// -l 0 / --ltime 0 (defaults to 1, but if set to 0 it changes all localtime() calls to gmtime())
-	// -24h 1 / --24htime 1 (defaults to 0, but if set to 1 it changes the behavior of the time-of-day output to use 24h time; do this by changing all formatTime(1) calls to formatTime(2))
 
 	// prepare command line parameters
 	po::options_description desc( "Available options" );
@@ -19,6 +15,7 @@ int main( int argc, char **argv )
 		( "db,i", po::value<std::string>()->default_value("./main.db"), "path to your Skype profile's main.db" )
 		( "outpath,o", po::value<std::string>()->default_value("./ExportedHistory"), "path where all html files will be written; will be created if missing" )
 		( "contacts,c", po::value<std::string>(), "space-separated list of the SkypeIDs to output; defaults to blank which outputs all contacts" )
+		( "timefmt,t", po::value<std::string>()->default_value("12h"), "format of timestamps in history output; set to \"12h\" for 12-hour clock (default), \"24h\" for a 24-hour clock, \"utc12h\" for UTC-based 12-hour clock, or \"utc24h\" for UTC-based 24-hour clock" )
 	;
 	
 	// parse and verify command line parameters
@@ -36,6 +33,10 @@ int main( int argc, char **argv )
 		std::cout << "\n" << desc << "\n";
 		return 0;
 	}
+	
+	// detect their desired time format (24 hour or 12 hour time; default to 12h) and time reference (UTC or local time; default to local)
+	uint8_t timeFormat = ( vm["timefmt"].as<std::string>() == "24h" || vm["timefmt"].as<std::string>() == "utc24h" ? 2 : 1 ); // used for formatTime() input, where 2=24h, 1=12h
+	int8_t timeReference = ( vm["timefmt"].as<std::string>() == "utc12h" || vm["timefmt"].as<std::string>() == "utc24h" ? 0 : 1 ); // 0=utc, 1=local
 
 	// verify the provided database and output paths and turn them into boost filesystem objects, then create the output path if needed
 	fs::path dbPath( vm["db"].as<std::string>() );
@@ -85,6 +86,7 @@ int main( int argc, char **argv )
 		
 		// display all options (input database, output path, and all names to output (if specified))
 		std::cout << "  DATABASE: [ " << dbPath << " ]\n" // note: no newline prefix (aligns it perfectly with version header)
+		          << "   TIMEFMT: [ \"" << ( timeFormat == 1 ? "12h" : "24h" ) << " " << ( timeReference == 0 ? "UTC" : "Local Time" ) << "\" ]\n"
 		          << "    OUTPUT: [ " << outPath << " ]\n";
 		if( outputContacts.size() > 0 ){
 			std::cout << "  CONTACTS: [ \"";
@@ -118,7 +120,7 @@ int main( int argc, char **argv )
 			// output exporting header
 			std::cout << " * Exporting: " << skypeID << " (" << sp.getDisplayNameAtTime( skypeID, -1 ) << ")\n";
 			std::cout << "   => " << logPath << "\n";
-			sp.exportUserHistory( skypeID, logPath.string() );
+			sp.exportUserHistory( skypeID, logPath.string(), timeFormat, timeReference );
 			if( outputContacts.size() > 0 ){ (*outputContacts_it).second = true; } // since filters are enabled and we've come here, we know we've output the person as requested, so mark them as such
 		}
 	}catch( const std::exception &e ){

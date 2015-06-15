@@ -64,10 +64,9 @@ KNOWN ISSUES, SERIOUS:
 
 FUTURE WISHES:
 * Full GUI
-* Command-line switches for 24h time and UTC time; see comment at top of "main.cpp" for more info on how to implement those.
 * Automatic locating of the Skype folder on Mac, Windows and Linux so that you will only have to provide your username (tricky, as the paths are not fixed, and you may sometimes want to provide just the raw db itself to be parsed)
 * Log-picker interface where you can view logs inside the GUI
-* Time-range slider based on first and last event (first and last is easy to find), to allow partial export/view
+* Time-range slider based on first and last event (first and last are easy to find), to allow partial export/view
 * Stylesheet switcher for other displaystyles, or some sort of color scheme switcher at least (invert, for instance).
 * Toggle graphical emoticons on/off, and stuff like that.
 * Pure XML output where stuff like <div class="DayContainer" is instead <DayContainer>, for those that would like output that's easily processed via an XML parser

@@ -4,7 +4,7 @@ namespace SkypeParser
 {
 	#include "../resources/css_and_images/style_compact_data_css.h"
 
-	void CSkypeParser::exportUserHistory( const std::string &skypeID, const std::string &targetFile )
+	void CSkypeParser::exportUserHistory( const std::string &skypeID, const std::string &targetFile, uint8_t timeFormat, int8_t timeReference )
 	{
 		std::ofstream xhtmlFileWriter( targetFile.c_str(), std::ios::out ); // NOTE: this is NOT a binary output stream, as we want \n to be translated to the appropriate newlines for the platform, in case the user wants to look at the raw log file in an editor that only supports platform newlines.
 		if( !xhtmlFileWriter ){ throw std::ios::failure( "error opening html file for writing" ); }
@@ -23,12 +23,12 @@ namespace SkypeParser
 		                << "	<body>\n";
 
 		// grab the main conversation history for the person
-		xhtmlFileWriter << getHistoryAsXHTML( (void *)skypeID.c_str(), false ) << "\n";
+		xhtmlFileWriter << getHistoryAsXHTML( (void *)skypeID.c_str(), false, timeFormat, timeReference ) << "\n";
 
 		// output all conferences the person took part in (if any)
 		std::vector<int32_t> confs = getConferencesForSkypeID( skypeID );
 		for( size_t i=0, len=confs.size(); i < len; ++i ){
-			xhtmlFileWriter << getHistoryAsXHTML( (void *)&confs[i], true ) << "\n";
+			xhtmlFileWriter << getHistoryAsXHTML( (void *)&confs[i], true, timeFormat, timeReference ) << "\n";
 		}
 
 		// page footer
@@ -44,7 +44,7 @@ namespace SkypeParser
 		// FIXME: analyze these steps and delete file if already partially created; this requires some care to not delete files that existed before the function was called
 	}
 
-	std::string CSkypeParser::formatTime( const struct tm *timestamp_tm, uint8_t format ) // format 0 = "July 8th, 2010"; format 1 = "8:05:07 AM" (no zero-padding of hour); format 2 = "08:05:07" (zero-padding of hour)
+	std::string CSkypeParser::formatTime( const struct tm *timestamp_tm, uint8_t format ) // format 0 = "July 8th, 2010"; format 1 = "8:05:07 AM" (12h time; no zero-padding of hour); format 2 = "08:05:07" (24h time; zero-padding of hour)
 	{
 		std::stringstream timeOutput( std::stringstream::in | std::stringstream::out ); // holds the date string as it's being constructed
 		switch( format )
@@ -85,8 +85,8 @@ namespace SkypeParser
 
 			// All done! "July 8th, 2010"
 			break;
-		case 1: // "8:05:07 AM" (no zero-padding of hour)
-		case 2: // "08:05:07" (zero-padding of hour)
+		case 1: // "8:05:07 AM" (12h time; no zero-padding of hour)
+		case 2: // "08:05:07" (24h time; zero-padding of hour)
 			// Hour (is in the range of 0-23, so must be pre-processed differently depending on output format)
 			if( format == 1 ){ // 12 hour format; needs adjustment to 12 hour time
 				uint32_t hour = timestamp_tm->tm_hour; // make a copy to avoid modifying the original timestamp structure
@@ -240,8 +240,11 @@ namespace SkypeParser
 		Generates the XHTML structure for a single conversation or conference.
 		Doesn't include the overall page structure, and is not the function you want if you just want the entire history for a person. Use exportSkypeHistory() for full, formatted output.
 		NOTE: searchValue should be const char* for regular chats or int32_t* for conferences and the function interprets them as one or the other depending on the value of isConference.
+		
+		timeFormat must be 1 for 12h time or 2 for 24h time
+		timeReference must be 0 for UTC time or 1 for local time
 	*/
-	std::string CSkypeParser::getHistoryAsXHTML( void *searchValue, bool isConference )
+	std::string CSkypeParser::getHistoryAsXHTML( void *searchValue, bool isConference, uint8_t timeFormat, int8_t timeReference )
 	{
 		int rc; // sqlite return codes
 		sqlite3_stmt *pStmt;
@@ -287,21 +290,23 @@ namespace SkypeParser
 		sqlite3_prepare_v2( mDB, "SELECT duration FROM Calls WHERE (conv_dbid=? AND begin_timestamp<=?) ORDER BY begin_timestamp DESC LIMIT 1", -1, &pCallInfoStmt, NULL );
 
 
-		// Header NOTE: There are conditions in so many places that the repetition cannot be helped, as ternary would be really messy.
-		time_t exportTime = time( NULL ); // grabs the current unix timestamp (UTC seconds since January 1st, 1970). we will use this for the header date/time.
+		// Header
+		// NOTE: There are conditions in so many places that the repetition cannot be helped, as ternary would be really messy.
+		time_t exportTime_timestamp = time( NULL ); // grabs the current unix timestamp (UTC seconds since January 1st, 1970). we will use this for the header's "exported at date/time" information. can be used with both localtime() and gmtime().
+		struct tm exportTime_tm = ( timeReference == 1 ? *localtime( &exportTime_timestamp ) : *gmtime( &exportTime_timestamp ) ); // 0=utc, 1=local // parse the "export time" timestamp into the temporary, global "tm" struct and then do a member-to-member copy into our own structure (this avoids the risk of other threads or things calling the global time functions and thereby modifying the data)
 		if( !isConference ){ // regular chat
 			xhtmlOutput << "<div class=\"ChatHistory\">\n" // starts the main log-container for this person
 			            << "	<div class=\"HistoryHeader\">\n" // starts the history-header which has some brief info about the generated log
 			            << "		<div class=\"SkypeLogo\"></div>\n" // the Skype logo
 			            << "		<div class=\"LogHeaderLine1\">Chat History with <a href=\"skype:" << partnerID << "\">" << getDisplayNameAtTime( partnerID, -1 ) << " (" << partnerID << ")</a></div>\n" // clickable name for the person whose history you're exporting (always use the absolute latest displayname for the header)
-			            << "		<div class=\"LogHeaderLine2\">Created on " << formatTime( localtime( &exportTime ), 0 ) << " at " << formatTime( localtime( &exportTime ), 1 ) << ".</div>\n" // the log creation date // FIXME: it would be NICE adding a sentence "All times are in UTC+1" (including any active DST at the time of log generation), maybe add that later...
+			            << "		<div class=\"LogHeaderLine2\">Created on " << formatTime( &exportTime_tm, 0 ) << " at " << formatTime( &exportTime_tm, timeFormat ) << ".</div>\n" // the log creation date // FIXME: it would be NICE adding a sentence "All times are in UTC+1" (including any active DST at the time of log generation), maybe add that later...
 			            << "	</div>\n"; // closes the history-header
 		}else{ // conference
 			xhtmlOutput << "<div id=\"conf_" << convoID << "\" class=\"ChatHistory ConferenceHistory\">\n" // starts the main log-container for this conference (contains anchor-ID)
 			            << "	<div class=\"HistoryHeader\">\n" // starts the history-header which has some brief info about the generated log
 			            << "		<div class=\"SkypeLogo\"></div>\n" // the Skype Conference logo
 			            << "		<div class=\"LogHeaderLine1\">Conference History for \"" << getConferenceTitle( convoID ) << "\"</div>\n" // title of the conference room, grabbed from the database
-			            << "		<div class=\"LogHeaderLine2\">Created on " << formatTime( localtime( &exportTime ), 0 ) << " at " << formatTime( localtime( &exportTime ), 1 ) << ".</div>\n" // the log creation date // FIXME: it would be NICE adding a sentence "All times are in UTC+1" (including any active DST at the time of log generation), maybe add that later...
+			            << "		<div class=\"LogHeaderLine2\">Created on " << formatTime( &exportTime_tm, 0 ) << " at " << formatTime( &exportTime_tm, timeFormat ) << ".</div>\n" // the log creation date // FIXME: it would be NICE adding a sentence "All times are in UTC+1" (including any active DST at the time of log generation), maybe add that later...
 			            << "	</div>\n"; // closes the history-header
 		}
 
@@ -584,14 +589,14 @@ namespace SkypeParser
 
 
 				// If the day/month/year combo of this event differs from our current section, create a new daycontainer. This will also create our initial daycontainer.
-				thisEvent.timestamp_tm = *localtime( &thisEvent.row_timestamp ); // parse the current row's timestamp into the temporary, global "tm" struct and then do a member-to-member copy into our row structure (this avoids the risk of other threads or things calling the global time functions and thereby modifying the data)
+				thisEvent.timestamp_tm = ( timeReference == 1 ? *localtime( &thisEvent.row_timestamp ) : *gmtime( &thisEvent.row_timestamp ) ); // 0=utc, 1=local // parse the current row's timestamp into the temporary, global "tm" struct and then do a member-to-member copy into our row structure (this avoids the risk of other threads or things calling the global time functions and thereby modifying the data)
 				if( thisEvent.timestamp_tm.tm_mday != parserState.activeDay.tm_mday ||
 					thisEvent.timestamp_tm.tm_mon  != parserState.activeDay.tm_mon  ||
 					thisEvent.timestamp_tm.tm_year != parserState.activeDay.tm_year ){
 						if( parserState.chunkState != 0 ){ xhtmlOutput << "			</div>\n		</div>\n"; parserState.chunkState = 0; } // close the previous <div class="MC"> message-chunk container if one is open; this will also notify the chunk-output code below that it needs to create a new message chunk due to end of day
 						if( parserState.activeDay.tm_year != 0 ) xhtmlOutput << "	</div>\n"; // close the previous <div class="DayContainer">, unless activeDay.tm_year is 0 (meaning this day is the first one we're outputting for the current log, in which case there is nothing to close yet)
 						parserState.activeDay = thisEvent.timestamp_tm; // store the active day to prepare for detecting the next day, by doing a member-to-member copy of the current row's tm structure into our activeDay structure; we only care about updating the tm_mday, tm_mon and tm_year fields, but it's neater to just copy the whole thing.
-						xhtmlOutput << "	<div class=\"DayHeader\">" << formatTime(&parserState.activeDay, 0) << "</div>\n" // output day-marker; date is formatted as "July 8th, 2010"
+						xhtmlOutput << "	<div class=\"DayHeader\">" << formatTime( &parserState.activeDay, 0 ) << "</div>\n" // output day-marker; date is formatted as "July 8th, 2010"
 						            << "	<div class=\"DayContainer\">\n"; // begin a message container for this day
 				}
 				
@@ -888,8 +893,8 @@ namespace SkypeParser
 				            << "<div class=\"M\">" << thisEvent.asXHTML.str() << "</div>"; // the formatted message body for the event
 				if( thisEvent.row_chatmsg_status == 1 ){ // if this is a pending (outgoing) message, show it as pending
 				xhtmlOutput << "<div class=\"T\">Pending</div>";
-				}else{ // otherwise show the original timestamp including edited/pending state (event timestamp is formatted as "8:05:07 AM")
-				xhtmlOutput << "<div class=\"T\">" << ( thisEvent.row_edited_timestamp != 0 ? "<div class=\"icons msg_edit\"><span>Edited</span></div> " : "" ) << formatTime( &thisEvent.timestamp_tm, 1 ) << "</div>"; // row_edited_timestamp is NULL (int 0) when no edit has taken place, as the sqlite3_column_int64() function returns int 0 for NULL values
+				}else{ // otherwise show the original timestamp including edited/pending state (event timestamp is formatted as "8:05:07 AM" for 12h or "08:05:27" for 24h)
+				xhtmlOutput << "<div class=\"T\">" << ( thisEvent.row_edited_timestamp != 0 ? "<div class=\"icons msg_edit\"><span>Edited</span></div> " : "" ) << formatTime( &thisEvent.timestamp_tm, timeFormat ) << "</div>"; // row_edited_timestamp is NULL (int 0) when no edit has taken place, as the sqlite3_column_int64() function returns int 0 for NULL values
 				}
 				xhtmlOutput << "</div>\n";
 
