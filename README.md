@@ -37,6 +37,7 @@ Supports _all_ features of the Skype protocol thanks to careful reverse-engineer
 
 * Windows compilation is done using Visual Studio or the compiler of your choice.
 * Mac OS X compilation is done using the included shell script.
+* Linux compilation is done using the included CMakeLists.txt
 
 ## Quick Guide
 
