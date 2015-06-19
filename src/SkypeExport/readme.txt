@@ -57,9 +57,6 @@ KNOWN ISSUES, WONTFIX (maybe some day):
 
 
 
-KNOWN ISSUES, SERIOUS:
-* The regular expression library used does not support UTF8/UTF16/UTF32. Requires some major changes to port to the IBM ICU string library and boost:u32regex. The current implementation has a very minor risk of falsely identifying unicode letters as part of a regex when they really shouldn't be matching. That risk will be eliminated once porting has been performed.
-
 
 
 FUTURE WISHES:

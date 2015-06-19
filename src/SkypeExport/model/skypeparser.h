@@ -21,7 +21,7 @@ namespace fs = boost::filesystem;
 #include "../libs/sqlite3/sqlite3.h"
 #include <boost/utility.hpp> // provides iterator next() which allows us to peek at the next iterator in sequence
 #include <boost/tokenizer.hpp> // provides a way to access tokens in a string
-#include <boost/regex.hpp> // SERIOUS FIXME: Replace message-string handling with the IBM ICU string class, and switch to using boost::u32regex. This adds UTF8, 16 and 32 regex support, which is needed to properly export logs making use of unicode characters.
+#include <boost/regex.hpp>
 
 // this is the size in bytes of a Skype GUID (used as value for certain database columns)
 #define SKYPEPARSER_GUID_SIZE 32

@@ -13,7 +13,7 @@ namespace SkypeParser
 		xhtmlFileWriter << "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n"
 		                << "<html>\n"
 		                << "	<head>\n"
-		                << "		<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n"
+		                << "		<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n" // we use utf-8 since that's the encoding used by Skype messages
 		                << "		<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\" /> <!-- tells IE to use standards-compliant mode and the newest engine -->\n"
 		                << "		<title>Skype History for " << getDisplayNameAtTime( skypeID, -1 ) << "</title>\n" // puts the person's latest displayname in the page title FIXME: verify that Skype has already escaped < > in the database (as &lt; and &gt;), otherwise we must do this replacement manually; this ALSO applies for ALL other places that the displayname is output
 		                << "		<style type=\"text/css\">\n"
@@ -210,6 +210,8 @@ namespace SkypeParser
 
 	/*
 		Takes a Skype message XML string and converts it and all entities to XHTML.
+		
+		All Skype messages are sent as (and stored in) UTF-8 format. Luckily, UTF-8 bytes are fully backwards-compatible with ASCII, since all UTF-8 bytes always start with 1 in the most significant bit (MSB); meaning that the lower 128 characters (ASCII 0-127) are NEVER contained inside of a UTF-8 multibyte sequence. All ASCII characters in UTF-8 are stored in a single byte, exactly as they would be in a regular ASCII string. This means the Regex (which only uses / looks for ASCII characters) is COMPATIBLE with Skype's UTF-8 strings and that we do NOT need to use Boost's u32regex! And even if there are UTF-8 sequences inside of the various ASCII tags we scan for, they'll simply be properly copied as-is into the output string.
 	*/
 	std::string CSkypeParser::skypeMessageToXHTML( const char *msgText )
 	{
@@ -595,7 +597,7 @@ namespace SkypeParser
 				
 				from_dispname (text): the active displayname of the person that wrote the message (such as Grince Farbgold). will NEVER be null. FIXME: are < and > converted to html entities already?
 				
-				body_xml (text): the text that was written. it's fully xml-compliant, so stuff like apostrophes are &apos; (well, there IS a flag called body_is_rawxml which is either 1 or null, but I had a look and the only time it has been null is the times when body_xml has been either empty or null itself, so we can safely assume that body_xml is ALWAYS encoded as safe xml). NOTE: Skype leaves ALL whitespace intact EXCEPT trailing whitespace; so any trailing spaces, tabs or newlines and other types of whitespace are ALL stripped when the message is sent/stored in the DB. this does not apply to prepended whitespace, which is kept as-is!
+				body_xml (text): the text that was written, in utf-8 format. all versions of Skype (even Linux) since mid-2014 use MSNP24 for the message transfer protocol, which is a web format using UTF-8; but even the older versions of Skype sent unicode characters as UTF-8. the contents of body_xml are always fully xml-compliant, so stuff like apostrophes are &apos; (well, there IS a flag called body_is_rawxml which is either 1 or null, but I had a look and the only time it has been null is the times when body_xml has been either empty or null itself, so we can safely assume that body_xml is ALWAYS encoded as safe xml). NOTE: Skype leaves ALL whitespace intact EXCEPT trailing whitespace; so any trailing spaces, tabs or newlines and other types of whitespace are ALL stripped when the message is sent/stored in the DB. this does not apply to prepended whitespaces, which are kept as-is!
 				
 				timestamp (integer): the unix timestamp of when the message was first sent (not when it was delivered, which may come later)
 				
