@@ -11,16 +11,13 @@ find_package(Boost 1.46 COMPONENTS
 )
 
 add_executable(SkypeExport
-    ../main.cpp
-    ../libs/sqlite3/sqlite3.c
-    ../model/skypeparser_core.cpp
-    ../model/skypeparser_parsing.cpp
+    ../../main.cpp
+    ../../libs/sqlite3/sqlite3.c
+    ../../model/skypeparser_core.cpp
+    ../../model/skypeparser_parsing.cpp
 )
 
 include_directories(SkypeExport
-    ../libs
-    ../model
-    ../resources/css_and_images
     ${Boost_INCLUDE_DIRS}
 )
 
