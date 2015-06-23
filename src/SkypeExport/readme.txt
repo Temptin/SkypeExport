@@ -1,7 +1,6 @@
 TO BUILD:
 * On Windows, make sure your compiler has the Boost 1.58 (or higher) headers and pre-compiled libraries in the include paths for the compiler and linker (using the included MSVC2013 project is suggested). For ease of use, you can install all pre-built Boost libraries from sourceforge.net/projects/boost/files/boost-binaries/ - the one used to build the current Windows version was the MSVC2013 32-bit installer at http://sourceforge.net/projects/boost/files/boost-binaries/1.58.0/boost_1_58_0-msvc-12.0-32.exe/download (install it to c:\local\boost_1_58_0). If you ever install a newer version of Boost, you must update the library/include paths in the MSVC project. You can use the free Visual Studio Community 2013 to compile this project (https://www.visualstudio.com/products/visual-studio-community-vs); it is meant for open-source projects and uses the exact same high-quality compiler as the paid version of Visual Studio.
-* On Mac OS X, look in the _gccbuild folder and read the text document, then issue the build script.
-* On Linux, it will be very similar to the OS X build, but possibly needing a different build script (not provided).
+* On Mac OS X and Linux, simply look in the _gccbuild folder and read the README for your platform, then issue the build script.
 * SQLite3 is also required, but is bundled with the project.
 
 
