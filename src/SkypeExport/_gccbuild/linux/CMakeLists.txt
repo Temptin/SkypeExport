@@ -24,3 +24,6 @@ include_directories(SkypeExport
 target_link_libraries(SkypeExport
     ${Boost_LIBRARIES}
 )
+
+# disable sqlite3 threading and dynamic extension loader to avoid pthreads/dl dependencies
+add_definitions(-DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_LOAD_EXTENSION)

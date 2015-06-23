@@ -1,13 +1,14 @@
 Building on Linux is very easy. Just make sure you have the following packages installed:
 
     gcc
+    g++
     make
     cmake
     boost 1.46 (or later)
 
 For example, on Ubuntu, you can run:
 
-    sudo apt-get install gcc cmake make libboost-all-dev
+    sudo apt-get install gcc g++ make cmake libboost-all-dev
 
 Run the build_linux.sh script to compile SkypeExport:
 

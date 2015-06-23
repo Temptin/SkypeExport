@@ -1,6 +1,7 @@
-## Ignore temporary files from the OS X build system, and any exported histories.
+## Ignore temporary files from the OS X and Linux build systems, and any exported histories.
 
 buildcache/
+release/
 ExportedHistory/
 
 ## Ignore Visual Studio temporary files, build results, and
