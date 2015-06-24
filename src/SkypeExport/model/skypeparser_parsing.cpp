@@ -931,7 +931,7 @@ namespace SkypeParser
 				xhtmlOutput << "				<div class=\"E t" << thisEvent.row_type << "\">"
 				            << "<div class=\"M\">" << thisEvent.asXHTML.str() << "</div>"; // the formatted message body for the event
 				if( thisEvent.row_chatmsg_status == 1 ){ // if this is a pending (outgoing) message, show it as pending
-				xhtmlOutput << "<div class=\"T\">Pending</div>";
+				xhtmlOutput << "<div class=\"T\">" << ( thisEvent.row_edited_timestamp != 0 ? "<div class=\"icons msg_edit\"><span>Edited</span></div> " : "" ) << "Pending</div>";
 				}else{ // otherwise show the original timestamp including edited/pending state (event timestamp is formatted as "8:05:07 AM" for 12h or "08:05:27" for 24h)
 				xhtmlOutput << "<div class=\"T\">" << ( thisEvent.row_edited_timestamp != 0 ? "<div class=\"icons msg_edit\"><span>Edited</span></div> " : "" ) << formatTime( &thisEvent.timestamp_tm, timeFormat ) << "</div>"; // row_edited_timestamp is NULL (int 0) when no edit has taken place, as the sqlite3_column_int64() function returns int 0 for NULL values
 				}
