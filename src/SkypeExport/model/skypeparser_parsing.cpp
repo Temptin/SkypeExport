@@ -8,7 +8,7 @@ namespace SkypeParser
 	{
 		std::ofstream xhtmlFileWriter( targetFile.c_str(), std::ios::out ); // NOTE: this is NOT a binary output stream, as we want \n to be translated to the appropriate newlines for the platform, in case the user wants to look at the raw log file in an editor that only supports platform newlines.
 		if( !xhtmlFileWriter ){ throw std::ios::failure( "error opening html file for writing" ); }
-		
+
 		// page header
 		xhtmlFileWriter << "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n"
 		                << "<html>\n"
@@ -140,7 +140,7 @@ namespace SkypeParser
 		else if( bytes < 1073741824 ){ exp = 2; result = (long double)bytes / 1048576; }
 		else if( bytes < 1099511627776ULL ){ exp = 3; result = (long double)bytes / 1073741824ULL; }
 		else{ exp = 4; result = (long double)bytes / 1099511627776ULL; }
-		
+
 		char tmp[24]; // buffer size rationale: numeric_limits<uint64_t>::digits10 == 19 (19 digits can hold the full 0-9 range), but that's not UINT64_MAX, the first digit can be a 1, so a uint64_t can be up to 20 digits long; then we add 1 for space, 2 for suffix, and 1 for termination.
 		sprintf( tmp, "%1.2f", (double)result ); // cast back to double since gcc's sprintf expects that type for "%f"
 		char *p = &tmp[strlen( tmp ) - 1]; // address of the last element in the string (not the null byte)
@@ -149,7 +149,7 @@ namespace SkypeParser
 		}
 		*(++p) = ' '; // add space separator
 		for( const char *psuffix = suffix[exp]; (*(++p) = *(psuffix++)) != '\0'; ); // copy suffix and null terminator from suffix
-		
+
 		return std::string( tmp ); // C++ glue... C++ elitists are gonna hate me for this
 	}
 
@@ -170,7 +170,7 @@ namespace SkypeParser
 
 		return durationOutput.str();
 	}
-	
+
 	/*
 		Calculates the UTC offset of the user's machine, such as -07:00, or +02:00, or +09:30 (such as mid-Australia), or even +00:00 (if they live in the GMT/UTC timezone *and* DST is currently not active, or Iceland with DST active).
 		If DST (Daylight Savings Time) is active, it gives you the offset with DST's +1 hour correctly applied.
@@ -180,12 +180,12 @@ namespace SkypeParser
 	{
 		// convert the current local clock time to a UTC timestamp
 		time_t currentTimestamp_UTC = time( NULL ); // grab the current unix timestamp for our current local computer time (UTC seconds since the epoch (January 1st, 1970)).
-		
+
 		// calculate what the UTC timestamp *would have been* if the current *local* computer time had been mistakenly set to the current *UTC* time instead, thus giving us a new "incorrect" timestamp which actually contains the local vs UTC timestamp difference! genius!
 		struct tm *timeInfo; // pointer to the global "tm" struct; we don't need to make any local copy since we use the results immediately
 		timeInfo = gmtime( &currentTimestamp_UTC ); // converts the local clock to a GMT/UTC clock "tm" struct instead, which means that if our *local* time is UTC+2, the time in the resulting object would be 2 hours *earlier* instead
 		time_t currentTimestamp_LocalDiff = mktime( timeInfo ); // convert the GMT/UTC clock "tm" struct back to a timestamp, which becomes interpreted as local time again during the conversion, and thereby gives us the UTC timestamp for the local time *difference* compared to UTC
-		
+
 		// calculate the offset from UTC in hours and minutes, adjusted for daylight savings time if active
 		// NOTE: DST means turning the clock forwards by an hour, thus moving America closer to UTC and Eastern Europe further away from UTC; this is the correct DST method regardless of whether you're east or west of UTC.
 		// NOTE: we don't need to do floating-point math since we only care about whole hours and whole minutes
@@ -195,7 +195,7 @@ namespace SkypeParser
 		utcOffset = abs( utcOffset ); // convert the difference to a positive number (-7200 becomes 7200) so that it becomes much easier to handle during output
 		uint32_t utcOffset_hours = utcOffset / 3600;
 		uint32_t utcOffset_minutes = ( utcOffset % 3600 ) / 60;
-		
+
 		// generate the output string such as -07:00, or +02:00, or +09:30, or +00:00
 		std::stringstream offsetOutput( std::stringstream::in | std::stringstream::out ); // holds the UTC offset string as it's being constructed
 		offsetOutput << ( utcOffset_isNegative ? "-" : "+" ) // whether it's a positive or negative offset
@@ -204,13 +204,13 @@ namespace SkypeParser
 		             << ":"
 		             << ( utcOffset_minutes < 10 ? "0" : "" ) // minutes 0-9 need zero-padding
 		             << utcOffset_minutes;
-		
+
 		return offsetOutput.str();
 	}
 
 	/*
 		Takes a Skype message XML string and converts it and all entities to XHTML.
-		
+
 		All Skype messages are sent as (and stored in) UTF-8 format. Luckily, UTF-8 bytes are fully backwards-compatible with ASCII, since all UTF-8 bytes always start with 1 in the most significant bit (MSB); meaning that the lower 128 characters (ASCII 0-127) are NEVER contained inside of a UTF-8 multibyte sequence. All ASCII characters in UTF-8 are stored in a single byte, exactly as they would be in a regular ASCII string. This means the Regex (which only uses / looks for ASCII characters) is COMPATIBLE with Skype's UTF-8 strings and that we do NOT need to use Boost's u32regex! And even if there are UTF-8 sequences inside of the various ASCII tags we scan for, they'll simply be properly copied as-is into the output string.
 	*/
 	std::string CSkypeParser::skypeMessageToXHTML( const char *msgText )
@@ -219,7 +219,7 @@ namespace SkypeParser
 		std::string bodyXML = msgText; // we have no choice but to do a copy, as the original is a dynamically allocated char array
 
 		// NOTE: all replacements below are case-sensitive, since we can trust the Skype log to use all-lowercase for these special tags. this saves us some regex processing time since each character only has to be checked once.
-		
+
 		// bold/italics/strikethrough/preformatted text
 		// they were added in Skype 7: http://blogs.skype.com/2014/10/16/instant-message-formatting-with-skype-for-mac-7-0/
 		// skype has a few special characters that change the formatting, and it stores them in an odd way (with the pre/post-characters as attributes of the actual tag we wanted). we'll have to clean that up...
@@ -267,7 +267,7 @@ namespace SkypeParser
 		static const boost::regex rgxNewlines( "(\r\n?|\n\r?)" ); // newlines regardless of type/system, even mixed newlines from different systems in the same string. is greedy, greedy, so it will try \r\n (Win), then \r (<2000 Mac), then \n\r (some weird files can have this), then \n (Mac OS X, UNIX, Linux).
 		static const std::string subNewlines( "<br />" ); // in our case, we want <br /> instead of literal newlines since the target format is XHTML
 		bodyXML = boost::regex_replace( bodyXML, rgxNewlines, subNewlines, boost::regex_constants::match_default | boost::regex_constants::format_perl );
-		
+
 		// NOTE: do NOT be tempted to trim whitespace from the start/end of messages or long stretches of whitespace (although Skype itself neither displays (on screen) nor stores trailing whitespace in the db in the first place, so messages are already filtered nicely in that respect). messages MUST be output as-is to preserve formatting, indentation and things like that.
 		// SIDENOTE: Skype stores tabs in the database as-sent/received, but it *displays* them in the chat by converting them to a sequence of 3 spaces, rather than the universal standards of 2/4 spaces (usually 4), which is a bit weird. We *could* behave exactly like skype by converting "\t" to "   " for display purposes, but I actually count this conversion as a fault of Skype and prefer to keep the tabs as-is, to preserve nice looking message formatting (particularly when code has been pasted into the chat and will later be copied from the parsed log).
 
@@ -279,7 +279,7 @@ namespace SkypeParser
 		Generates the XHTML structure for a single conversation or conference.
 		Doesn't include the overall page structure, and is not the function you want if you just want the entire history for a person. Use exportSkypeHistory() for full, formatted output.
 		NOTE: searchValue should be const char* for regular chats or int32_t* for conferences and the function interprets them as one or the other depending on the value of isConference.
-		
+
 		timeFormat must be 1 for 12h time or 2 for 24h time
 		timeReference must be 0 for UTC time or 1 for local time
 	*/
@@ -315,7 +315,7 @@ namespace SkypeParser
 				Sender:
 					INCOMING: always use $row["from_dispname"] to get the name of the sender.
 					OUTGOING: always use "You" or similar "Sending X to" grammar. for cases where your name should be part of the message (such as /me strings), use $row["from_dispname"].
-					
+
 				Target:
 					WHERE TARGET IS A CONFERENCE: always use "to the conference".
 					FOR EVENTS THAT REQUIRE "identities" PARSING: Use getDisplayNameAtTime(skypeID[taken from identities], timestamp of the event), or fall back to the raw skypeID if the displayname query gave no result ("")
@@ -364,14 +364,14 @@ namespace SkypeParser
 				sqlite3_finalize( pTransferInfoStmt );
 				sqlite3_finalize( pCallInfoStmt );
 				sqlite3_finalize( pStmt );
-				
+
 				// if the SQL statement failed to execute, that's an unrecoverable error...
 				throw std::runtime_error( sqlite3_errmsg( mDB ) );
 			}
-			
+
 			// bind the partner id to the statement
 			sqlite3_bind_text( pStmt, 1, partnerID.c_str(), -1, SQLITE_TRANSIENT ); // we use SQLITE_TRANSIENT to tell SQLite to make its own private copy of the string, so that we won't have to worry about the data being freed before SQLite is done with it.
-			
+
 			// grab the convo_id for the 1on1 conversation with this person
 			if( sqlite3_step( pStmt ) == SQLITE_ROW ){
 				// grab column in result row
@@ -381,11 +381,11 @@ namespace SkypeParser
 				sqlite3_finalize( pTransferInfoStmt );
 				sqlite3_finalize( pCallInfoStmt );
 				sqlite3_finalize( pStmt );
-				
+
 				// NOTE: we were unable to find any 1on1 chat with this person's SkypeID, which means that you've only encountered them in a conference. they were most likely added to a conference by one of your mutual friends. since there's no 1on1 history, simply return a hidden HTML comment string stating that there is no 1on1 chat with this person
 				return "<!-- There is no 1on1 chat history for this person. -->";
 			}
-			
+
 			// free up statement
 			sqlite3_finalize( pStmt );
 		}
@@ -397,7 +397,7 @@ namespace SkypeParser
 		if( !isConference ){
 			// OLD QUERY:
 			//logQuery.append("dialog_partner=?"); // grabs all messages and status nodes to/from the person with the given skypeid.
-			
+
 			// There's new bug in Skype 6 (and higher) which randomly, and very rarely, causes the dialog_partner value to be saved as NULL
 			// for some messages. That means that they wouldn't be discovered when exporting the main chat history for that person. However,
 			// we can't simply scan by "convo_id" instead since that would miss all conference creation events since those are stored within
@@ -432,7 +432,7 @@ namespace SkypeParser
 		// bind the appropriate variable based on search type
 		if( !isConference ){
 			sqlite3_bind_int( pStmt, 1, convoID ); // ?1: the main conversation id // convoID is a 32 bit integer on all systems, so just bind it as-is using sqlite's 32 bit int bind function.
-			
+
 			// bind their/our names in the various locations required for the type=10 search statement above
 			sqlite3_bind_text( pStmt, 2, partnerID.c_str(), -1, SQLITE_TRANSIENT ); // ?2: their name // we use SQLITE_TRANSIENT to tell SQLite to make its own private copy of the string, so that we won't have to worry about the data being freed before SQLite is done with it.
 			sqlite3_bind_text( pStmt, 3, mMySkypeID.c_str(), -1, SQLITE_TRANSIENT ); // ?3: our name
@@ -478,7 +478,7 @@ namespace SkypeParser
 			uint8_t direction; // denotes the event direction of the currently-parsed event; 2 for outgoing, 4 for incoming. does not need to be initialized, as it's updated at the start of each row-loop.
 			struct tm timestamp_tm; // time structure that's always filled with the parsed version of the current event's original timestamp (thisEvent.row_timestamp), and is usable every time you need to output or work with the date/time representation of the timestamp of this event.
 			std::stringstream asXHTML; // returns the event as XHTML; is emptied at the start of each new event and built during the event parsing step, and finally used as part of the output of that event
-			
+
 			// initialization
 			SkypeEvent() : asXHTML( std::stringstream::in | std::stringstream::out ) { }; // gives the proper parameters to the stringstream
 		} thisEvent; // will hold the data for the current event; basically anything that is updated/calculated for every new row we come across
@@ -500,15 +500,15 @@ namespace SkypeParser
 				Column/Event Explanations:
 
 				type (integer): exact type of the message, more reliable than trying to understand chatmsg_type+chatmsg_status pairs, since this identifies events clearly, but use in conjunction with the latter.
-				
-				(NOT USED) chatmsg_type (integer): the type of event. different from the always-reliable "type" above, in that this seems to be some sort of legacy value. we will never need it, as "type" is the true type of the event, and chatmsg_status is the direction, which is all we need. has also been observed to be NULL extremely rarely (might be due to a bug in Skype, as it should NEVER be NULL). 
-				
+
+				(NOT USED) chatmsg_type (integer): the type of event. different from the always-reliable "type" above, in that this seems to be some sort of legacy value. we will never need it, as "type" is the true type of the event, and chatmsg_status is the direction, which is all we need. has also been observed to be NULL extremely rarely (might be due to a bug in Skype, as it should NEVER be NULL).
+
 				chatmsg_status (integer): the transfer status of the event.
 					1: pending, outgoing (events that have not yet been delivered to the recipient, either because they are offline or because you lost your P2P connection)
 					2: delivered, outgoing (events that have been delivered to the recipient)
 					4: delivered, incoming (events that have been delivered to you)
 					* no other values will occur
-				
+
 				* type/chatmsg_type/chatmsg_status meanings:
 					* WARNING: DO NOT USE chatmsg_status to determine direction during parsing; use newEventDirection which will be I for incoming or O for outgoing.
 					type:61=regular text message
@@ -529,7 +529,7 @@ namespace SkypeParser
 						* use guid to look up the transfer details from the Transfers table
 						* outgoing transfers to conferences have multiple entries in the Transfers table (one per recipient), and we'll have to take care to only count each file once, by only counting unique filepaths when determining how many files we're sending out
 						* Transfers table description:
-							filename (text): the plain name of the file, such as "the.phantom.menace.1080p.mkv"		
+							filename (text): the plain name of the file, such as "the.phantom.menace.1080p.mkv"
 							filesize (text, even though you would expect integer, but I guess they did this to avoid having too-small integers to hold the data in-memory?, luckily we can query it as a 64 bit int to have SQLite cast it for us): the size of the file in bytes, such as "2444978"
 							filepath (text): the full path to where we saved the file (if receiving) or where it came from (if sending). this contains stuff like "/Volumes/Secondary OS/path/to/file.jpg". it is NULL if it was an incoming transfer that WE never accepted (either because they cancelled it or because we cancelled it), since Skype has no idea where it WOULD have been saved if we'd have accepted. we'll ONLY use this value during SENDING, and only when that's done TO CONFERENCES. when that's the case, we will use it to avoid counting the same file multiple times for each participant. (we will NEVER use this value for receiving, since receiving files in a conference only inserts ONE entry per file in the Transfers table, we don't know the state of the others in the conference and don't need to bother with that; as for outgoing transfers to 1on1 chats, we likewise only have 1 entry per file since there's only 1 recipient; we ONLY need it for OUTGOING TO CONFERENCE). NOTE: I wish we could have just used the participant_count column in the Messages table to divide to remove duplicates, as that would have been such a clean solution, but sadly that value is NULL for pre-Skype5 events...
 							partner_dispname (text): the displayname of your chat partner. for 1on1 chats, this is always the person you're talking to no matter the direction of the filetransfer. for OUTGOING transfers to conferences, it's one of the recipients (conferences have MULTIPLE rows for the same file, each with a different partner, to differentiate the transfer states for each person; there's also partner_handle for their SkypeID if that is more desirable). for INCOMING transfers from someone in a conference, it seems to be the name of the sender, but that doesn't matter for us since we already have a reliable sender name via thisEvent.row_from_dispname. THE *ONLY* THING WE WILL BE USING PARTNER_DISPNAME FOR IS TO OUTPUT THE COMPLETION STATE PER-PERSON *OF OUR OUTGOING TRANSFERS TO THE CONFERENCE*.
@@ -592,25 +592,25 @@ namespace SkypeParser
 								* this one is really easy to handle, just use the author/from_dispname to show the person that left for incoming, or write "you left" for outgoing. unlike type 10, "identities" is not used at all here, thankfully.
 								* this event only occurs inside conference convo_id streams, so no need to check the isConference flag.
 				* NOTE: outgoing means from YOU to the partner --->, and incoming means from the PARTNER to you <---
-				
+
 				author (text): the SkypeID of the person that wrote the message (such as grince.farbgold). is NEVER null on Skype 4/5 databases, but due to random corruption in Skype 6/7+ it will SOMETIMES be null, so always be careful when using this value; it is there nearly 100% of the time but just be aware of this.
-				
+
 				from_dispname (text): the active displayname of the person that wrote the message (such as Grince Farbgold). will NEVER be null. FIXME: are < and > converted to html entities already?
-				
+
 				body_xml (text): the text that was written, in utf-8 format. all versions of Skype (even Linux) since mid-2014 use MSNP24 for the message transfer protocol, which is a web format using UTF-8; but even the older versions of Skype sent unicode characters as UTF-8. the contents of body_xml are always fully xml-compliant, so stuff like apostrophes are &apos; (well, there IS a flag called body_is_rawxml which is either 1 or null, but I had a look and the only time it has been null is the times when body_xml has been either empty or null itself, so we can safely assume that body_xml is ALWAYS encoded as safe xml). NOTE: Skype leaves ALL whitespace intact EXCEPT trailing whitespace; so any trailing spaces, tabs or newlines and other types of whitespace are ALL stripped when the message is sent/stored in the DB. this does not apply to prepended whitespaces, which are kept as-is!
-				
+
 				timestamp (integer): the unix timestamp of when the message was first sent (not when it was delivered, which may come later)
-				
+
 				edited_timestamp (integer): null most of the time, but when it contains a value it gives the time of the last edit to the message
-				
+
 				(NOT USED) dialog_partner (text): the exact, permanent username/loginname (NOT their pretty "full display name") of the person you are chatting with in single-person chats. always has the same value even when THEY send YOU a message. example: "grince.farbgold". this value is null in multiperson chats (conferences), apart from the very first message in a conference where it seems to denote the person you were chatting with when the conference was created. NOTE: There is a bug in Skype 6 (or higher) which sometimes stores a NULL instead of the proper dialog_partner into the database, which means that it's no longer reliable to use this field for ANYTHING. We've switched to convo_id scanning instead, with a special exception to also catch Type10 ("added to conference") events.
-				
+
 				guid (blob): this is a globally unique identifier for the message. we only need it when parsing filetransfer data, as the filetransfer information is stored under this guid.
-				
+
 				(NOT USED) call_guid (text): this is the call globally unique identifier, used for identifying individual calls' start and end events. only contains any data for event types 30+39. WARNING: call_guid is null for VERY OLD calls performed in Skype versions older than 5, so we cannot use it!
-				
+
 				convo_id (integer): this is the unique identifier for your dialog partner combination; it is permanent (the same whenever you talk to the same partner). also, whenever you create a conference chat (more than 2 people), it generates a new convo_id. The "Conversations" table contains mappings for id -> partner's "identity" (skypeID) and other info (and its "type" column means 1=1on1, 2=conference). we are using convo_id to grab all messages from our 1on1 conversations and conferences, as well as to correlate calls in the Calls table. WARNING: the convo_id of type10 ("added to conference") events will NOT be the 1on1 id; it will be the CONFERENCE's id. so the solution for finding "conference created" events during 1on1 scanning is to ALSO scan for ALL type10 events and then narrowing them down by ensuring that they were either sent from you to the 1on1 partner, or from the 1on1 partner to you. this is achieved with the advanced SQL statement in the "grab messages" code above.
-				
+
 				identities (text): this is NULL for EVERY event type EXCEPT a handful. when it's NOT null, it is a space-separated list of one or more skypeIDs of the people that are taking part of that event. here are the eventtypes where it is used: 110 (unknown event). 100: conference sync event (contains list of existing conference participants, seems to only be sent out when you are added to someone else's conference). 51 (unknown event, almost 100% sure it is for accepted friend request). 50 (friend request; status 2/4 indicates direction). 39 (call start, contains list of people called; one in 1on1, one or more in conference). 30 (call end; value similar to call start, except it may possibly contain early dropouts as single identities entries, until finally everyone has dropped out; OR perhaps it just indicates when YOU hung up and the people that were also in that call, even people that dropped out earlier? FIXME: test that? or not give a shit? I prefer NOT GIVE A SHIT, but someone else is free to investigate!). 10 (conference join event; identities contains the list of people that were added, usually just one but will be several if more than one person is added at a time). oddly enough event 13 (conference leave event) does NOT use identities, instead the "author"/"from_dispname" is the person that left (which can be yourself, just use chatmsg_status to judge direction to see if it was you that left)
 			*/
 			switch( thisEvent.row_type ) // filters out just the events we care about
@@ -638,7 +638,7 @@ namespace SkypeParser
 						xhtmlOutput << "	<div class=\"DayHeader\">" << formatTime( &parserState.activeDay, 0 ) << "</div>\n" // output day-marker; date is formatted as "July 8th, 2010"
 						            << "	<div class=\"DayContainer\">\n"; // begin a message container for this day
 				}
-				
+
 
 				// Grab the chunk direction (1: pending, outgoing. 2: delivered, outgoing. 4: delivered, incoming) and store it as either 2 or 4.
 				thisEvent.direction = ( thisEvent.row_chatmsg_status == 1 || thisEvent.row_chatmsg_status == 2 ? 2 : 4 ); // 2 = outgoing, 4 = incoming
@@ -664,14 +664,14 @@ namespace SkypeParser
 				}
 				if( thisEvent.direction != parserState.chunkState ){ // if we don't have a chunk at the moment (as will be the case if this is the first event of the whole log), or if the direction has transitioned between incoming/outgoing events, we also need to output a new chunk; this also catches cases in 1on1 chats where our PARTNER is the FIRST person to speak, as their skypeID and earliest displayName are already pre-initialized to the correct values and would not be caught by the above checks, but that's caught here since there will be no open block at this point in time.
 					makeNewContainer = true;
-					// NOTE: we'll take care of actually updating parserState.chunkState to match during the chunk output below 
+					// NOTE: we'll take care of actually updating parserState.chunkState to match during the chunk output below
 				}
-				
+
 
 				// Check whether we should create a new message-chunk container to indicate whoever is speaking/sending the event
 				if( makeNewContainer ){ // change of message direction, or a new day has occured and reset the chunkState variable to 0, or the dialog partner or their name has changed while we're still receiving incoming messages (happens in 1on1 if the partner changes name without you sending them any messages inbetween; and in conference chats when different incoming people write to you all in one "incoming" stream without you saying anything), or we've changed our own displayname while still sending outgoing messages...
 					if( parserState.chunkState != 0 ){ xhtmlOutput << "			</div>\n		</div>\n"; parserState.chunkState = 0; } // close the previous <div class="MC"> message-chunk container if one is open
-					
+
 					parserState.chunkState = thisEvent.direction; // store the active chunk direction
 					xhtmlOutput << "		<div class=\"MC S" << ( parserState.chunkState == 2 ? "O" : "I" ) << "\">\n" // begin the new message chunk, with the current direction (status) as an appended class
 					            << "			<div class=\"A\">" << thisEvent.row_from_dispname << "</div>\n" // author of the message-chunk
@@ -808,11 +808,11 @@ namespace SkypeParser
 					{
 					// note: cloud transfer events lack file size information and "sending failed" indication, since that information is retrieved on-the-fly by the Skype client using a protected JSON-based Cloud API which we can't access. also, there's no ability to cancel/decline cloud transfers since they're immediately uploaded. for these reasons, there's really only a single piece of usable information: the original filename of the sent/received file. also, currently Skype is only sending 1 cloud file per message/event (even when dropping multiple files on the window), but we extract *all* filenames just in case they add support for multiple files per message in the future
 					// since these types of transfers cannot fail, we will simply output them as if they were a regular file transfer - but without any file size information, and with a "(Cloud File Transfer)" tag at the end of the filename instead of a size. FIXME: in the future we'll want to remove that tag IF Skype decides to turn *all* transfers into cloud-based (for now it's just doing it for a few image formats, and it'll probably stay that way). it would be annoying to see it all the time if they decide to switch to it entirely, but for now it's a good indicator about the difference between regular transfers and cloud-based transfers in your exported history.
-					
+
 					// prepare the container that will hold individual file information
 					std::stringstream fileInfoXHTML( std::stringstream::in | std::stringstream::out ); // this is used for building the XHTML string containing information about all files for this transfer
 					uint32_t filecount = 0; // the number of files being transferred
-					
+
 					// we use a regex to find *all* OriginalName tags with v properties (the original filenames)
 					std::string bodyXML = thisEvent.row_body_xml; // we have no choice but to do a copy, as the original is a dynamically allocated char array
 					static const boost::regex rgxOriginalNames( "<OriginalName[^>]*? v=\"([^\"]+)\"" );
@@ -824,21 +824,21 @@ namespace SkypeParser
 					while( boost::regex_search( start, end, what, rgxOriginalNames, flags ) ){
 						// what[0] = the full regex match (including non-capture groups), what[1] = just the first subcapture
 						// in our case, what[1] = the filename of the current sent/received file
-						
+
 						// generate the XHTML-line for the file and append the file's information to the XHTML line storage
 						// NOTE: we're ALWAYS logging these cloud events with an "OK" icon, since there's no failure/success information stored in the event information (not even when the "Sending failed" error happens, meaning when the upload to the cloud failed). we are also indicating that it is a "Cloud File Transfer" since we have no filesize information.
 						++filecount;
 						fileInfoXHTML << "<div class=\"t201_f\">" << "<div class=\"icons ft_ok\"><span>OK</span></div>" << " " << what[1] << " (Cloud File Transfer)" << "</div>";
-						
+
 						// move the start iterator beyond the current match so we continue scanning the rest of the string
 						start = what[0].second; // what[0].second = the position of the end of the current full regex match
 					}
-					
+
 					// generate the file count summary ("X files")
 					std::stringstream countSummaryXHTML( std::stringstream::in | std::stringstream::out );
 					if( filecount == 1 ){ countSummaryXHTML << "a file"; }
 					else{ countSummaryXHTML << filecount << " files"; }
-					
+
 					// save the header line
 					thisEvent.asXHTML << "<div class=\"t201_h\">";
 					if( !isConference ){ // regular chats
@@ -847,7 +847,7 @@ namespace SkypeParser
 						thisEvent.asXHTML << ( thisEvent.direction == 4 ? std::string( thisEvent.row_from_dispname ) + " is sending " + countSummaryXHTML.str() + " to the conference:" : std::string( "Sending " ) + countSummaryXHTML.str() + " to the conference:" );
 					}
 					thisEvent.asXHTML << "</div>";
-					
+
 					// save the fileinfo lines
 					thisEvent.asXHTML << fileInfoXHTML.str();
 					break;
@@ -868,7 +868,7 @@ namespace SkypeParser
 						// however, no direct mapping exists, so we'll have to sort calls in reverse by begin_timestamp, where the convo_id is the same, and the begin_timestamp is <= the timestamp of the "call end" event.
 						// only 1 call is legal at a time for any particular convo-id; if you call someone, both of your "call" buttons become "hang up" instead, even while the call is pending, and even if you both try calling each other at exactly the same time, so there is no way to have multiple calls at once with the same person (FIXME: not tested with conference calls, where some people may be able to drop out and call again later to re-join?)
 						// FIXME: this hinges on there being NO "call start" events while a call is going on, but I must test a conference: call everyone, someone hangs up, that person re-dials while the others are in chat. and then try the same thing except WE hang up and re-dial. if it all works out logically, the first case will NOT show any call end/call start for the person that left, and our own event will be 2 separate events, the first being the incoming or outgoing call that started it all and the second being our outgoing re-dial...
-						
+
 						// reset the statement so that it begins the search anew (otherwise it would carry on with its state since last time we used the statement)
 						sqlite3_reset( pCallInfoStmt ); // NOTE: this will not clear any existing bindings. to unset bindings you use sqlite3_clear_bindings(). we won't bother with that and will instead simply re-bind the parameter below.
 
@@ -894,7 +894,7 @@ namespace SkypeParser
 				case 10: // person(s) added to conference; can be you or can be others
 					if( !isConference ){ // regular chats
 						// NOTE: For 1on1 chats, the convo_id of these events is actually the id of the new conference instead of the 1on1 chat, so be aware of that!
-						
+
 						// NOTE: Skype itself ONLY shows outgoing creations (when WE invited the 1on1 partner to a conference), but here we also show when our 1on1 person invites us to a conference, which is a very, very nice bonus!
 						if( thisEvent.direction == 2 ){ // OUTGOING: When we add our 1on1 partner to a conference
 							thisEvent.asXHTML << "You added " << lastDialogPartner.dispName << " to a group conversation \"<a href=\"#conf_" << thisEvent.row_convo_id << "\">" << getConferenceTitle( thisEvent.row_convo_id ) << "</a>\".";

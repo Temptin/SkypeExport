@@ -30,7 +30,7 @@ namespace SkypeParser
 {
 	// container for holding a collection of skypeIDs
 	typedef std::list<std::string> skypeIDs_t;
-	
+
 	// struct for holding conferences, their titles, and all the skypeids that took part in each
 	struct ConferenceInfo {
 		std::string confTitle;

@@ -17,7 +17,7 @@ int main( int argc, char **argv )
 		( "contacts,c", po::value<std::string>(), "space-separated list of the SkypeIDs to output; defaults to blank which outputs all contacts" )
 		( "timefmt,t", po::value<std::string>()->default_value("12h"), "format of timestamps in history output; set to \"12h\" for 12-hour clock (default), \"24h\" for a 24-hour clock, \"utc12h\" for UTC-based 12-hour clock, or \"utc24h\" for UTC-based 24-hour clock" )
 	;
-	
+
 	// parse and verify command line parameters
 	po::variables_map vm;
 	try{
@@ -33,7 +33,7 @@ int main( int argc, char **argv )
 		std::cout << "\n" << desc << "\n";
 		return 0;
 	}
-	
+
 	// detect their desired time format (24 hour or 12 hour time; default to 12h) and time reference (UTC or local time; default to local)
 	uint8_t timeFormat = ( vm["timefmt"].as<std::string>() == "24h" || vm["timefmt"].as<std::string>() == "utc24h" ? 2 : 1 ); // used for formatTime() input, where 2=24h, 1=12h
 	int8_t timeReference = ( vm["timefmt"].as<std::string>() == "utc12h" || vm["timefmt"].as<std::string>() == "utc24h" ? 0 : 1 ); // 0=utc, 1=local
@@ -83,7 +83,7 @@ int main( int argc, char **argv )
 	try{
 		// open Skype history database
 		SkypeParser::CSkypeParser sp( dbPath.string() );
-		
+
 		// display all options (input database, output path, and all names to output (if specified))
 		std::cout << "  DATABASE: [ " << dbPath << " ]\n" // note: no newline prefix (aligns it perfectly with version header)
 		          << "   TIMEFMT: [ \"" << ( timeFormat == 1 ? "12h" : "24h" ) << " " << ( timeReference == 0 ? "UTC" : "Local Time" ) << "\" ]\n"
@@ -108,11 +108,11 @@ int main( int argc, char **argv )
 		// output contacts, skipping some in case the user provided a list of contacts to export
 		for( SkypeParser::skypeIDs_t::const_iterator it( users.begin() ); it != users.end(); ++it ){
 			const std::string &skypeID = (*it);
-			
+
 			// skip if we're told to filter contacts
 			outputContacts_it = outputContacts.find( (*it) ); // store iterator here since we'll set it to true after outputting, if contact filters are enabled
 			if( outputContacts.size() > 0 && ( outputContacts_it == outputContacts.end() ) ){ continue; } // if no filters, it's always false; if filters it's true if the contact is to be skipped
-			
+
 			// construct the final path to the log file for this user
 			fs::path logPath( outPath );
 			logPath /= ( (*it) + ".skypelog.htm" ); // appends the log filename and chooses the appropriate path separator
@@ -136,6 +136,6 @@ int main( int argc, char **argv )
 	}
 
 	std::cout << "\nExport finished.\n";
-	
+
 	return 0;
 }

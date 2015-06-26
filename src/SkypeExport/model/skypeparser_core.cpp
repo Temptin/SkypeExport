@@ -90,7 +90,7 @@ namespace SkypeParser
 
 
 		/* Conferences: Phase 1 (IDs and Titles) */
-		
+
 		// prepare statement to get the id and title of all conferences
 		rc = sqlite3_prepare_v2( mDB, "SELECT id, displayname FROM Conversations WHERE (type=2)", -1, &pStmt, NULL );
 		if( rc != SQLITE_OK ){
@@ -133,27 +133,27 @@ namespace SkypeParser
 				if( boost::next( it ) != mSkypeConferences.end() ){ confParticipantQuery << " OR "; } // appended after every element except the last one
 			}
 			confParticipantQuery << ")";
-			
+
 			// prepare statement to get the participants for all encountered conferences
 			rc = sqlite3_prepare_v2( mDB, confParticipantQuery.str().c_str(), -1, &pStmt, NULL );
 			if( rc != SQLITE_OK ){
 				sqlite3_finalize( pStmt );
 				throw std::runtime_error( sqlite3_errmsg( mDB ) );
 			}
-	
+
 			// iterate through all participants and store them under their given conferences
 			while( sqlite3_step( pStmt ) == SQLITE_ROW ){
 				// grab columns in current row
 				int32_t convoID = sqlite3_column_int( pStmt, 0 ); // convo_id
 				std::string participantSkypeID = reinterpret_cast<const char *>( sqlite3_column_text( pStmt, 1 ) ); // identity
-	
+
 				// look up the conference and insert this participant
 				skypeConferences_it = mSkypeConferences.find( convoID );
 				if( skypeConferences_it != mSkypeConferences.end() ){ // conference known
 					(*skypeConferences_it).second.participants.push_back( participantSkypeID );
 				}
 			}
-	
+
 			// free up statement
 			sqlite3_finalize( pStmt );
 		}
@@ -181,7 +181,7 @@ namespace SkypeParser
 		sqlite3_stmt *pStmt;
 		std::string nameQuery;
 		std::string dispName = "";
-		
+
 		// builds the appropriate query based on what we're trying to look up
 		// NOTE: we do the "IS NOT NULL" check to protect against the increasingly common NULL corruption in Skype's databases
 		if( timestamp == 0 ){ // earliest name
@@ -210,7 +210,7 @@ namespace SkypeParser
 			// grab column in result row
 			dispName = reinterpret_cast<const char *>( sqlite3_column_text( pStmt, 0 ) ); // from_dispname
 		}
-		
+
 		// free up statement
 		sqlite3_finalize( pStmt );
 
