@@ -628,7 +628,7 @@ namespace SkypeParser
 
 
 				// If the day/month/year combo of this event differs from our current section, create a new daycontainer. This will also create our initial daycontainer.
-				thisEvent.timestamp_tm = ( timeReference == 1 ? *localtime( &thisEvent.row_timestamp ) : *gmtime( &thisEvent.row_timestamp ) ); // 0=utc, 1=local // parse the current row's timestamp into the temporary, global "tm" struct and then do a member-to-member copy into our row structure (this avoids the risk of other threads or things calling the global time functions and thereby modifying the data)
+				thisEvent.timestamp_tm = ( timeReference == 1 ? *localtime( &thisEvent.row_timestamp ) : *gmtime( &thisEvent.row_timestamp ) ); // 0=utc, 1=local // parse the current row's (original, non-edited-time) timestamp into the temporary, global "tm" struct and then do a member-to-member copy into our row structure (this avoids the risk of other threads or things calling the global time functions and thereby modifying the data)
 				if( thisEvent.timestamp_tm.tm_mday != parserState.activeDay.tm_mday ||
 					thisEvent.timestamp_tm.tm_mon  != parserState.activeDay.tm_mon  ||
 					thisEvent.timestamp_tm.tm_year != parserState.activeDay.tm_year ){
@@ -929,13 +929,9 @@ namespace SkypeParser
 
 				// Output the message
 				xhtmlOutput << "				<div class=\"E t" << thisEvent.row_type << "\">"
-				            << "<div class=\"M\">" << thisEvent.asXHTML.str() << "</div>"; // the formatted message body for the event
-				if( thisEvent.row_chatmsg_status == 1 ){ // if this is a pending (outgoing) message, show it as pending
-				xhtmlOutput << "<div class=\"T\">Pending</div>";
-				}else{ // otherwise show the original timestamp including edited/pending state (event timestamp is formatted as "8:05:07 AM" for 12h or "08:05:27" for 24h)
-				xhtmlOutput << "<div class=\"T\">" << ( thisEvent.row_edited_timestamp != 0 ? "<div class=\"icons msg_edit\"><span>Edited</span></div> " : "" ) << formatTime( &thisEvent.timestamp_tm, timeFormat ) << "</div>"; // row_edited_timestamp is NULL (int 0) when no edit has taken place, as the sqlite3_column_int64() function returns int 0 for NULL values
-				}
-				xhtmlOutput << "</div>\n";
+				            << "<div class=\"M\">" << thisEvent.asXHTML.str() << "</div>" // the formatted message body for the event
+				            << "<div class=\"T\">" << ( thisEvent.row_edited_timestamp != 0 ? "<div class=\"icons msg_edit\"><span>Edited</span></div> " : "" ) << ( thisEvent.row_chatmsg_status == 1 ? "Pending" : formatTime( &thisEvent.timestamp_tm, timeFormat ) ) << "</div>" // the "edited" icon and the original non-edited-time timestamp (event timestamp is formatted as "8:05:07 AM" for 12h or "08:05:27" for 24h; or "Pending" if it's not yet delivered); row_edited_timestamp is NULL (int 0) when no edit has taken place, as the sqlite3_column_int64() function returns int 0 for NULL values
+				            << "</div>\n";
 
 
 				/************************* EVENT PARSING  END  *************************/
