@@ -61,9 +61,15 @@ namespace SkypeParser
 
 		/* Users */
 
-		// prepare statement (NOTE: the reason we don't use the Contacts table is that it contains spam-contacts and people you just saw in people-search, as well as people you've added but never talked to (which would be pointless to output). sure, there's the buddystatus field, but that still doesn't ensure that it's someone you've actually had a single conversation with. therefore, the below statement is far better, since it truly grabs everyone you've had contact with at least once.)
-		// NOTE: we do the "IS NOT NULL" check to protect against a corrupt Skype database with NULL author in some messages
-		rc = sqlite3_prepare_v2( mDB, "SELECT DISTINCT author FROM Messages WHERE (author IS NOT NULL) ORDER BY author ASC", -1, &pStmt, NULL ); // ensures that our list will be sorted alphabetically
+		// prepare statement (NOTE: the reason we don't use the Contacts table is that it DOESN'T contain people you have only spoken to in a conference via a mutual friend, DOESN'T ALWAYS contain deleted friends (who you may want to be able to export), and yet it DOES contain useless spam-contacts and people you just saw in people-search, as well as people you've added but never talked to (which would be pointless to output). sure, there's the buddystatus field, but that still doesn't ensure that it's someone you've actually had a single conversation with. therefore, the below statement is far better, since it truly grabs everyone you've had contact with at least once.)
+		// NOTE: the "type!=50" check ensures that we IGNORE all "please add me as a friend" events, since those are very often sent by spammers. you of course dismiss their dialog, but they still get saved in the Contacts table and a "type 50" event is logged with their name in the Messages table, which is why we must avoid "friend request" events! our scanning does not need them, since it's very thorough and ensures that anybody who has sent (or received) a single non-friend request event from/to you will be detected!
+		// NOTE: we do the "IS NOT NULL" check to protect against a corrupt Skype database with NULL author in some messages (and the other columnm dialog_partner, is very often NULL in various events)
+		rc = sqlite3_prepare_v2( mDB,
+			"SELECT DISTINCT author AS skypename FROM Messages WHERE (type!=50 AND author IS NOT NULL) " // finds non-duplicate people who have sent at least one non-friend-request event TO you; it also finds yourself (since you're the author of your own events), but we ignore your own name when we actually parse these results
+			"UNION " // the UNION joins the results of two SELECT statements and makes sure there are no duplicate rows (whereas UNION ALL would allow duplicates)
+			"SELECT DISTINCT dialog_partner AS skypename FROM Messages WHERE (type!=50 AND dialog_partner IS NOT NULL) " // in case the other person never wrote back to you, this additional statement finds the remaining non-duplicate people YOU have sent at least one non-friend-request event to
+			"ORDER BY skypename ASC", // ensures that our list will be sorted alphabetically
+			-1, &pStmt, NULL );
 		if( rc != SQLITE_OK ){
 			sqlite3_finalize( pStmt );
 			throw std::runtime_error( sqlite3_errmsg( mDB ) );
@@ -73,7 +79,7 @@ namespace SkypeParser
 		skypeIDs_t::iterator skypeUsers_it;
 		while( sqlite3_step( pStmt ) == SQLITE_ROW ){
 			// grab columns in current row
-			std::string skypeID = reinterpret_cast<const char *>( sqlite3_column_text( pStmt, 0 ) ); // author
+			std::string skypeID = reinterpret_cast<const char *>( sqlite3_column_text( pStmt, 0 ) ); // the "skypename" column we invented, which contains all unique non-null author and dialog_partner values
 
 			// if this skypeID is actually ourselves (the database owner), then don't add it, since this is only meant to hold our contacts
 			if( skypeID == mMySkypeID ){ continue; }
