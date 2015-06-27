@@ -1,5 +1,15 @@
 # Release History
 
+## SkypeExport v1.3.0 Stable (June 27th, 2015)
+
+This is the final release of SkypeExport, and it contains multiple important fixes to deal with _all_ of the remaining flaws in Skype's unreliable "cloud history" service. Official support for the Linux platform has also been added at last, thanks to a collaborative effort with the brilliant Santosh Thoduka. What a fantastic way to end, with _full_ support for _all_ past and present versions of Skype on Windows, OS X and now _Linux_!
+
+* (Enhancement) Improved the contact name scanner to _ignore_ spammers. We've always used a _very_ thorough method of analyzing the database to be sure that we find and export _everybody_ you've ever talked to, but it had the side-effect of also picking up the names of spammers who sent you friend requests that you'd never accepted. We now ignore those fake friend requests, thus giving you a perfect friends list export.
+* (Enhancement) We now _always_ display the "edited" icon next to edited outgoing messages, even if they are still marked as "Pending delivery". This brings us in line with the corresponding GUI changes in Skype 6+, where this new "edited" icon behavior was introduced.
+* (Bug Fix) Improved handling of the multiple types of database corruption caused by Skype 6+'s unreliable "cloud history" service: The contact name and display name scanners now _avoid_ yet another type of cloud-induced "empty database field" corruption. The display name scanner now falls back to displaying the raw username if no valid name could be found due to corruption. The message direction scanner has been rewritten for completely reliable event direction detection again, regardless of whether your chat history data is corrupt cloud-data or pristine local history, and the fix is fully backwards-compatible with old databases. The file transfer scanner has been rewritten to deal with the cloud corruption and is able to detect all file transfers in a robust and backwards-compatible manner. We now handle these various cloud service corruptions _much better_ than the official client, just like a _lot_ of _other_ issues with Skype's database that we've had to work around over the years.
+* (_Developers_) Added Linux build system graciously contributed by Santosh Thoduka (@sthoduka). To install SkypeExport on Linux, simply download the source code and read the brief instructions in the "gccbuild/linux" directory. Have fun!
+
+
 ## SkypeExport v1.2.0 Stable (June 15th, 2015)
 
 Brings you several great, new time-related features along with a few minor general enhancements.
@@ -42,4 +52,3 @@ SkypeExport was born as a personal project as I was leaving Skype and needed som
 This software was created during an intense 3 week reverse engineering and coding session and was finished on August 28th, 2011, working perfectly with the latest Windows and Mac Skype versions out at that time.
 
 Released as a "Beta" even though it fully supports _all_ features of the Skype protocol, since the software will now have to prove itself out in the world before it will be granted the honor of a 1.0 release.
-

@@ -5,7 +5,7 @@ namespace po = boost::program_options;
 
 int main( int argc, char **argv )
 {
-	std::cout << "Skype History Exporter v1.2.0 Stable\n"
+	std::cout << "Skype History Exporter v1.3.0 Stable\n"
 	          << "   WEBSITE: [ https://github.com/Temptin/SkypeExport ]\n"; // helps people find updated versions
 
 	// prepare command line parameters
