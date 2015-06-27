@@ -324,8 +324,9 @@ namespace SkypeParser
 
 
 		// create pre-compiled statements for file transfer and call information lookups, since a large database can contain thousands of file transfers and will therefore be a significant bottleneck if it has to constantly re-build the statement during the lifetime of the event it's parsing.
-		sqlite3_stmt *pTransferInfoStmt, *pCallInfoStmt;
-		sqlite3_prepare_v2( mDB, "SELECT filename, filesize, filepath, partner_dispname, status FROM Transfers WHERE (chatmsg_guid=?) ORDER BY id ASC", -1, &pTransferInfoStmt, NULL ); // NOTE: the parsing of these statements will never fail, since it's just doing parsing here (not actual evaluation), so no need for error checking
+		sqlite3_stmt *pTransferInfoSoloStmt, *pTransferInfoConfStmt, *pCallInfoStmt;
+		sqlite3_prepare_v2( mDB, "SELECT DISTINCT filename, filesize, status FROM Transfers WHERE (chatmsg_guid=?) ORDER BY chatmsg_index ASC", -1, &pTransferInfoSoloStmt, NULL ); // NOTE: the parsing of these statements will never fail, since it's just doing parsing here (not actual evaluation), so no need for error checking
+		sqlite3_prepare_v2( mDB, "SELECT DISTINCT filename, filesize FROM Transfers WHERE (chatmsg_guid=?) ORDER BY chatmsg_index ASC", -1, &pTransferInfoConfStmt, NULL );
 		sqlite3_prepare_v2( mDB, "SELECT duration FROM Calls WHERE (conv_dbid=? AND begin_timestamp<=?) ORDER BY begin_timestamp DESC LIMIT 1", -1, &pCallInfoStmt, NULL );
 
 
@@ -361,7 +362,8 @@ namespace SkypeParser
 			rc = sqlite3_prepare_v2( mDB, "SELECT id FROM Conversations WHERE (identity=? AND type=1) LIMIT 1", -1, &pStmt, NULL ); // note: type 1 is regular 1on1 conversation and type 2 is conference; and we actually don't even need to limit the statement since there will only ever be one match for this particular query
 			if( rc != SQLITE_OK ){
 				// free up pre-compiled SQL statements
-				sqlite3_finalize( pTransferInfoStmt );
+				sqlite3_finalize( pTransferInfoSoloStmt );
+				sqlite3_finalize( pTransferInfoConfStmt );
 				sqlite3_finalize( pCallInfoStmt );
 				sqlite3_finalize( pStmt );
 
@@ -378,7 +380,8 @@ namespace SkypeParser
 				convoID = sqlite3_column_int( pStmt, 0 ); // convo_id of the main 1on1 conversation with that person
 			}else{
 				// free up pre-compiled SQL statements
-				sqlite3_finalize( pTransferInfoStmt );
+				sqlite3_finalize( pTransferInfoSoloStmt );
+				sqlite3_finalize( pTransferInfoConfStmt );
 				sqlite3_finalize( pCallInfoStmt );
 				sqlite3_finalize( pStmt );
 
@@ -548,22 +551,31 @@ namespace SkypeParser
 						chatmsg_type:18=? FIXME: only seen this ONCE, in my entire Skype history, and it was indeed a file transfer, of an image, making this "18" value very strange.
 						* my guess is we should rely on type:68 and just ignore chatmsg_type for file transfers. sending_status (as usual) still shows the actual direction of the transfer.
 						* use guid to look up the transfer details from the Transfers table
-						* outgoing transfers to conferences have multiple entries in the Transfers table (one per recipient), and we'll have to take care to only count each file once, by only counting unique filepaths when determining how many files we're sending out
 						* Transfers table description:
 							filename (text): the plain name of the file, such as "the.phantom.menace.1080p.mkv"
 							filesize (text, even though you would expect integer, but I guess they did this to avoid having too-small integers to hold the data in-memory?, luckily we can query it as a 64 bit int to have SQLite cast it for us): the size of the file in bytes, such as "2444978"
 							filepath (text): the full path to where we saved the file (if receiving) or where it came from (if sending). this contains stuff like "/Volumes/Secondary OS/path/to/file.jpg". it is NULL if it was an incoming transfer that WE never accepted (either because they cancelled it or because we cancelled it), since Skype has no idea where it WOULD have been saved if we'd have accepted. we'll ONLY use this value during SENDING, and only when that's done TO CONFERENCES. when that's the case, we will use it to avoid counting the same file multiple times for each participant. (we will NEVER use this value for receiving, since receiving files in a conference only inserts ONE entry per file in the Transfers table, we don't know the state of the others in the conference and don't need to bother with that; as for outgoing transfers to 1on1 chats, we likewise only have 1 entry per file since there's only 1 recipient; we ONLY need it for OUTGOING TO CONFERENCE). NOTE: I wish we could have just used the participant_count column in the Messages table to divide to remove duplicates, as that would have been such a clean solution, but sadly that value is NULL for pre-Skype5 events...
-							partner_dispname (text): the displayname of your chat partner. for 1on1 chats, this is always the person you're talking to no matter the direction of the filetransfer. for OUTGOING transfers to conferences, it's one of the recipients (conferences have MULTIPLE rows for the same file, each with a different partner, to differentiate the transfer states for each person; there's also partner_handle for their SkypeID if that is more desirable). for INCOMING transfers from someone in a conference, it seems to be the name of the sender, but that doesn't matter for us since we already have a reliable sender name via thisEvent.row_from_dispname. THE *ONLY* THING WE WILL BE USING PARTNER_DISPNAME FOR IS TO OUTPUT THE COMPLETION STATE PER-PERSON *OF OUR OUTGOING TRANSFERS TO THE CONFERENCE*.
+							partner_dispname (text): the displayname of your chat partner. for 1on1 chats, this is always the person you're talking to no matter the direction of the filetransfer. for OUTGOING transfers to conferences, it's one of the recipients (conferences have MULTIPLE rows for the same file, each with a different partner, to differentiate the transfer states for each person; there's also partner_handle for their SkypeID if that is more desirable). for INCOMING transfers from someone in a conference, it seems to be the name of the sender, but that doesn't matter for us since we already have a reliable sender name via thisEvent.row_from_dispname. THE *ONLY* THING WE *USED* TO BE USING PARTNER_DISPNAME FOR WAS TO OUTPUT THE COMPLETION STATE PER-PERSON *OF OUR OUTGOING TRANSFERS TO THE CONFERENCE* -- but that ended when Skype's half-assed "cloud history" broke conference transfers and forced us to abandon individual file transfer status information.
 							status (integer): shows the current state of the file, such as transfer completed, or "waiting", etc. known values:
-								0 = no action taken
-								2 = you are sending a file to someone, they have not accepted yet (this will happen if you send while they are offline or you log out before they accept it, or if you export the database while skype is running and they haven't accepted yet)
+								0 = means "no action taken" which is when the sender or receiver closes their Skype client thus aborting the p2p connection; it's also seen for *all* file transfer database events coming back from the "cloud history" feature, in which case they *always* have a status of 0 (aka NULL).
+								2 = you are sending a file to someone, but they have not accepted yet (this will happen if you send while they are offline or you log out before they accept it, or if you export the database while skype is running and they haven't accepted yet)
 								7 = recipient (you/they) cancelled
 								8 = recipient (you/they) completed transfer
 								9 = ? FIXME: might mean transfer failed due to connection problem. insufficient data to determine what this means.
 								10 = skype is currently open. they are trying to send you a file, you have not accepted yet. turns into 0 if you close skype without accepting it.
 								12 = you are sending a file to someone, THEY hit cancel. strange, what's different from 7?
-								* There are way too many weird codes. I'll simply go 8 = Completed, Everything Else = Not transferred.
+								* There are way too many weird codes. The numbers 2, 7 and 8 are most common. I'll simply go 8 = Completed, Everything Else = Not transferred.
 							NOTE: we COULD print the "filepath" field as part of the log output, as it's a string value showing the source/destination path on OUR disk. this contains stuff like "/Volumes/Secondary OS/path/to/file.jpg"... kinda nice to have but then again the surrounding discussion reveals what the subject was and lets you determine what the files were about, and also by the time you've made the log the files have probably been either moved or deleted in most cases. finally, printing such info would clutter the log files, and storing it as <a href="file://path"> would be nonsensical as A) most paths would be broken and B) the paths could contain sensitive info and leak such info if the user shares the log with someone. logs shouldn't contain "hidden" info like that.
+						* if you drop more than 1 file onto the Skype window, it basically multiplies the number of rows described below by the number of files; one for each file, so that it can individually track their accept/reject/pending/failed statuses. they all have the same chatmsg_guid of course.
+						* transfers to a single 1on1 partner have a SINGLE entry in the Transfers table, with their name as the "partner_dispname" value. it starts out with status "2" (file offered), and the row is updated to 8 if they finish the transfer.
+						* transfers to conferences have multiple rows per chat partner and you have to take care to only count unique files when parsing the database; the exact details depend on the Skype version:
+							* Skype 5 (and lower): the database instantly creates individual rows with status:2 for each individual chat partner; each row has that particular person's "partner_dispname" value. if they accept/reject the files, the "status" field of THAT row changes.
+							* Skype 6+: the database instantly creates a SINGLE row with "status:2" with YOURSELF as the "partner_dispname" value, and every conference participant AND YOURSELF in a space-separated "offer_send_list". if someone accepts/rejects the file, a NEW row is created for that person with THEM as the "partner_dispname", an identical "chatmsg_guid" (to link the transfer properly), and a NULL "offer_send_list". when the new row is created, the original "status:2" row targeted at "yourself" is STILL THERE but the "offer_send_list" is UPDATED to remove the name of the person that reacted to the file. after ALL offered participants have accepted/rejected the file, ONLY YOURSELF remains in the "offer_send_list" and the "status" of the original row is updated to "8" to signify that ALL conference recipients have accepted the file. the value MAY be something other than 8 if someone else in the conference REJECTS the file; although it seems impossible to reject incoming transfers as of Skype 6+. anyway, my point is that it's safest to ONLY rely on "status:2 == not everybody has reacted yet" and to NEVER rely on seeing "status:8" on the row that targets yourself as the partner_dispname.
+						* NOTE: the VERY complex changes to Skype 6+ actually break backwards-compatibility; old databases don't have a row with yourself as the target so we can't rely on it when parsing, and the new database format would require LOADS of string splitting, comparing against your own name, checking the status, building a list of recipients, looking for their rows and seeing if THEY accepted, etc. and we can't simply "ignore our own status:2 row and just look for accept/reject events" since it's not guaranteed that anybody accepted/rejected the transfer. and there are more issues, as you'll see in the following warning regarding "cloud history" yet again:
+						* WARNING: the ridiculously poor and buggy "cloud history" feature in Skype screws up transfers ROYALLY. In conferences, it deletes ALL accept/reject/fail events for the other people, keeps ONLY the rows with YOU as the recipent, sets the "offer_send_list" to NULL so that you can't see the list of conference participants who were offered the file, clears the filepath to EITHER NULL or "" (a totally empty 0-byte string), and has yourself as the "partner_dispname". It also sets the "status" to 0 (sometimes 12). Even their OFFICIAL CLIENT gets confused by this UTTER GARBAGE, and if it's a conference it displays the files with download-buttons as if they were being offered TO YOU for download by someone else. If it's a 1on1 chat it says "Sending canceled..." even though the person may have accepted the file.
+						* PARSING STRATEGY/WARNING CONTINUED: There are severe backwards-compatibility issues with implementing the new system, and it would be a headache to implement all the logic. And the ONLY fields we can rely on to EXIST are "filename" (the bare name) and "filesize", as both of those are properly preserved by "cloud history". Moreover, the OFFICIAL GUI no longer renders 1 "file transfer icon" per recipient and instead shows a SINGLE icon along with a count of how many people have accepted that file. For these reasons, the smartest parsing strategy is to just find the UNIQUE filepath (use empty string if null/empty)/filename/size pairs from the current file and IGNORE all lists of conference file transfer recipients, statuses, etc. it's actually totally okay to not output a list of recipients/statuses, since the official GUI has moved away from such detailed information too.
+						* PARSING STRATEGY/WARNING CONTINUED: Moreover... it's impossible to send folders via Skype, which means that the only way to send MULTIPLE files in a SINGLE transfer event is to select them all individually in your OS and drag them onto Skype. Since you have to select each file individually and then drag them all as a group, they must all be within the same folder (that's true for Linux, Windows and OS X), which means that it's POINTLESS to use the "filepath" to check for file-uniqueness if you want to count outgoing files. Instead, JUST use the filename, since a single message is GUARANTEED to have 100% unique filenames (case sensitive filesystems can have multiple similar-looking files like Readme.txt and readme.txt but they'll still be different strings and will be properly seen as individual files).
+						* PARSING STRATEGY/WARNING FINAL: So, taking all of the above quirks, incompatibilities and MASSIVE database bugs into account, the best and ONLY backwards-compatible solution is to FORGET about the "good old days" of being able to see per-recipient transfer status in conferences, and instead simply doing "SELECT DISTINCT filename, filesize FROM Transfers WHERE ( chatmsg_guid=... ) ORDER BY chatmsg_index ASC" to get all unique filenames and their sizes for the current transfer event, with a single result row per file regardless of number of recipients, and with the names ordered via chatmsg_index (which is a number starting at 0 and rising for each additional file that was sent in that event, thus ensuring an export with the same file order as they're rendered in the official client), and then simply rendering them with "ok" checkmarks as if they were transferred successfully to the conference. For 1on1 events, you can still check for status:8 but should ALSO check for status:0/status:12 (the two possible "default" values of "cloud history"-retrieved events) and treat those as OK too; that allows you to have a nice output of accept/reject in most 1on1 cases, and only fall back to "always draw as OK even if not actually transferred" when the cloud history has screwed up the status.
 					type:201=cloud file transfer (new feature as of Skype 6.22+)
 						(DO NOT USE) chatmsg_type:in my testing it has consistently been 7 for incoming, 3 for outgoing, but is very often NULL due to a bug in Skype. the fact that it is 3 for outgoing is quite interesting, since chatmsg_type seems to be the legacy (very old versions of Skype) message type indicator, and type 3 is "regular chat message", which supports my theory (below) that old clients which don't support cloud file transfers will receive these messages as regular chat messages instead. but then again, chatmsg_type 7 is used for both /me emotes and file transfers, so maybe there is no correlation. either way, ignore this chatmsg_type value, since it's completely unreliable.
 						body_xml:the XML describing the contents of this cloud file transfer (simply parse it to get a list of files)
@@ -752,54 +764,44 @@ namespace SkypeParser
 					}else{
 						// alright, we have the GUID and can now look up the transfer details
 
+						// first, let's do some magic: create a pointer of type "sqlite3_stmt struct" and point it to the exact same location as the appropriate pre-existing solo or conference information struct, thus letting us refer to both of those (very similar) statements with a single variable name
+						// ... pTransferInfoSoloStmt = "SELECT DISTINCT filename, filesize, status FROM Transfers WHERE (chatmsg_guid=?) ORDER BY chatmsg_index ASC"
+						// ... pTransferInfoConfStmt = "SELECT DISTINCT filename, filesize FROM Transfers WHERE (chatmsg_guid=?) ORDER BY chatmsg_index ASC"
+						sqlite3_stmt *pTransferInfoStmt = ( isConference ? pTransferInfoConfStmt : pTransferInfoSoloStmt );
+
 						// reset the statement so that it begins the search anew (otherwise it would carry on with its state since last time we used the statement)
 						sqlite3_reset( pTransferInfoStmt ); // NOTE: this will not clear any existing bindings. to unset bindings you use sqlite3_clear_bindings(). we won't bother with that and will instead simply re-bind the parameter below.
 
 						// bind parameters
-						// pTransferInfoStmt = "SELECT filename, filesize, filepath, partner_dispname, status FROM Transfers WHERE (chatmsg_guid=?) ORDER BY id ASC"
 						sqlite3_bind_blob( pTransferInfoStmt, 1, &transferguid, SKYPEPARSER_GUID_SIZE * sizeof( uint8_t ), SQLITE_STATIC ); // SQLITE_STATIC means that SQLite will NOT copy the contents of transferguid when it binds the variable, so we must be VERY careful not to free or modify that memory before we're done using this statement!
 
 						// look up all file entries involved in the transfer via the Transfers table, going by the transfer's GUID.
 						std::stringstream fileInfoXHTML( std::stringstream::in | std::stringstream::out ); // this is used for building the XHTML string containing information about all files for this transfer
 						int64_t totalsize = 0; // will hold the combined size of all files (64 bit int is absolutely needed here, as the transfer of multiple files could easily go past 2 gigabytes of total size if someone is transferring several video files or disc images)
-						uint32_t filecount = 0; // the number of unique files being transferred
-						std::list<std::string> confUniqueFiles; // ONLY used during OUTGOING transfers to CONFERENCES, and is used to determine the true count of files being sent and to only count files once
-						std::list<std::string>::iterator confUniqueFiles_it;
+						uint32_t filecount = 0; // the number of unique files being transferred in this file transfer event (meaning: the number of files dropped onto the Skype window simultaneously)
 						struct {
 							const char *filename; // text
-							int64_t filesize; // text, but we will have sqlite cast it to integer, can contain values > 32 bit integer
-							const char *filepath; // text
-							const char *partner_dispname; // text
-							int32_t status; // integer
+							int64_t filesize; // text, can contain values > 32 bit integer, so we will have sqlite cast it to a 64 bit integer
+							int32_t status; // integer (NOTE: we only retrieve the transfer status from the database if this is a 1on1 chat. the status field is no longer reliable in conferences after Skype 6+ introduced their extremely buggy "cloud history" system)
 						} fileInfo;
 						while( sqlite3_step( pTransferInfoStmt ) == SQLITE_ROW ){
 							// store integers and addresses for the current file entry (NOTE the null-checking rules for any columns that can be null)
 							fileInfo.filename = reinterpret_cast<const char *>( sqlite3_column_text( pTransferInfoStmt, 0 ) );
 							fileInfo.filesize = sqlite3_column_int64( pTransferInfoStmt, 1 ); // we must get the size as a 64 bit signed integer, as that is what SQLite's C API uses internally (it does not have unsigned integers), otherwise we will not support files larger than 2 GiB (as rare as such transfers may be, they are legal)
-							fileInfo.filepath = reinterpret_cast<const char *>( sqlite3_column_text( pTransferInfoStmt, 2 ) ); // is NULL if you are the RECIPIENT and did not accept the transfer. for our purposes, this does not matter, as we only use this value while SENDING during CONFERENCES.
-							fileInfo.partner_dispname = reinterpret_cast<const char *>( sqlite3_column_text( pTransferInfoStmt, 3 ) );
-							fileInfo.status = sqlite3_column_int( pTransferInfoStmt, 4 );
-
-							// generate all of the individual file lines, and keep a tally of their combined size and file count
-							if( !isConference || thisEvent.direction == 4 ){ // if this is a 1on1 chat, or an incoming event in a conference, simply add the file info as-is, as we know there won't be duplicates
-								++filecount;
-								totalsize += fileInfo.filesize;
-							}else{ // it is an outgoing event in a conference, guaranteed by the previous if-statement; we must verify that we don't count the same files twice
-								// count this file if it's the first time we encounter it for this transfer
-								confUniqueFiles_it = std::find( confUniqueFiles.begin(), confUniqueFiles.end(), fileInfo.filepath ); // as explained above, this is NEVER NULL for OUTGOING transfers, so this statement is safe
-								if( confUniqueFiles_it == confUniqueFiles.end() ){ // this file has never been encountered before during this transfer chunk
-									++filecount;
-									totalsize += fileInfo.filesize;
-									confUniqueFiles.push_back( fileInfo.filepath ); // mark this file as seen, to avoid counting it more than once
-								}
+							if( !isConference ){ // the "status" field is only reliable in 1on1 chats, which is why we only retrieve it from the database for those events
+								fileInfo.status = sqlite3_column_int( pTransferInfoStmt, 2 );
+								if( fileInfo.status == 0 || fileInfo.status == 12 ){ fileInfo.status = 8; } // NOTE: this compensates for the bugs in Skype's "cloud history" system. in the past we used to be able to trust the status and only care about 8 ("transfer ok"), but all events retrieved via "cloud history" have an incorrect status of 0 or 12 instead. those codes are actually *very rare* in normal use, which therefore means that we can guess that those transfers succeeeded too and force them to "8". status 0 means "canceled by your or the recipient closing your client and breaking the p2p file offer" and status 12 is a rare/weird version of 7 aka "sender or recipient canceled the transfer" (which never seems to appear in any normal use, since 7 is the proper "rejected/canceled" status code).
+							}else{ // if this is a conference, we instead always force the status to "8", thus automatically printing the "Transfer OK" status symbol
+								fileInfo.status = 8;
 							}
+
+							// add the current file to the "combined size and file count" tally. NOTE: the SELECT statement we used ensures that we only get a single result row per actual file in the transfer (even in conferences with multiple recipients), so we don't have to do any de-duplication
+							++filecount;
+							totalsize += fileInfo.filesize;
 
 							// generate the XHTML-line for the file and append the file's information to the XHTML line storage
-							fileInfoXHTML << "<div class=\"t68_f\">" << ( fileInfo.status == 8 ? "<div class=\"icons ft_ok\"><span>OK</span></div>" : "<div class=\"icons ft_failed\"><span>FAILED</span></div>" ) << " " << fileInfo.filename << " (" << formatBytes( fileInfo.filesize, false ) << ")";
-							if( isConference && thisEvent.direction == 2 ){ // outgoing transfers in conferences can have more than one recipient, so we output the recipient name after the file name in that case
-							fileInfoXHTML << " to " << fileInfo.partner_dispname;
-							}
-							fileInfoXHTML << "</div>";
+							// NOTE: we only have a real status for 1on1 file transfer events; conference file transfers are always forced by us to status 8.
+							fileInfoXHTML << "<div class=\"t68_f\">" << ( fileInfo.status == 8 ? "<div class=\"icons ft_ok\"><span>OK</span></div>" : "<div class=\"icons ft_failed\"><span>FAILED</span></div>" ) << " " << fileInfo.filename << " (" << formatBytes( fileInfo.filesize, false ) << ")</div>";
 						}
 
 						// generate the count/size summary ("X files (18.34 MB)")
@@ -986,7 +988,8 @@ namespace SkypeParser
 
 
 		// free up pre-compiled file transfer/call information statements
-		sqlite3_finalize( pTransferInfoStmt );
+		sqlite3_finalize( pTransferInfoSoloStmt );
+		sqlite3_finalize( pTransferInfoConfStmt );
 		sqlite3_finalize( pCallInfoStmt );
 
 
