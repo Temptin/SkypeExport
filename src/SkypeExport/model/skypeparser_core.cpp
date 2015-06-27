@@ -191,13 +191,13 @@ namespace SkypeParser
 		bool foundName = false;
 
 		// builds the appropriate query based on what we're trying to look up
-		// NOTE: we do the "IS NOT NULL" check to protect against the increasingly common NULL corruption in Skype's databases
+		// NOTE: we do the "IS NOT NULL" and "!=''" (not empty string) checks to protect against a corrupt Skype database with NULL/empty from_dispname in some messages. the NULL/empty string corruption of "from_dispname" is very rare, but happens due to the awful "cloud history" service from Skype, which sometimes NULLs/clears (empty string) critical fields like "from_dispname".
 		if( timestamp == 0 ){ // earliest name
-			nameQuery = "SELECT from_dispname FROM Messages WHERE (author=? AND from_dispname IS NOT NULL) ORDER BY timestamp ASC LIMIT 1";
+			nameQuery = "SELECT from_dispname FROM Messages WHERE (author=? AND from_dispname IS NOT NULL AND from_dispname!='') ORDER BY timestamp ASC LIMIT 1";
 		}else if( timestamp == -1 ){ // latest name
-			nameQuery = "SELECT from_dispname FROM Messages WHERE (author=? AND from_dispname IS NOT NULL) ORDER BY timestamp DESC LIMIT 1";
+			nameQuery = "SELECT from_dispname FROM Messages WHERE (author=? AND from_dispname IS NOT NULL AND from_dispname!='') ORDER BY timestamp DESC LIMIT 1";
 		}else{ // name at specific point in time, and allows you to overshoot their latest timestamp and still grab their correct name at that time (NOTE: if this fails, we will return the earliest name instead, if possible, since it failing means that the earliest name is the next in sequence; this will fail quite a lot at the beginning of conferences where unknown people are invited via "identities")
-			nameQuery = "SELECT from_dispname FROM Messages WHERE (author=? AND from_dispname IS NOT NULL AND timestamp<=?) ORDER BY timestamp DESC LIMIT 1";
+			nameQuery = "SELECT from_dispname FROM Messages WHERE (author=? AND from_dispname IS NOT NULL AND from_dispname!='' AND timestamp<=?) ORDER BY timestamp DESC LIMIT 1";
 		}
 
 		// prepare statement
