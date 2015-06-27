@@ -181,12 +181,13 @@ namespace SkypeParser
 	}
 
 
-	std::string CSkypeParser::getDisplayNameAtTime( const std::string &skypeID, time_t timestamp )
+	std::string CSkypeParser::getDisplayNameAtTime( const std::string &skypeID, time_t timestamp, bool allowFallback ) // NOTE: allowFallback is true by default in the header declaration, since it's almost always the desired behavior
 	{
 		int rc;
 		sqlite3_stmt *pStmt;
 		std::string nameQuery;
-		std::string dispName = "";
+		std::string dispName = ( allowFallback ? skypeID : "" ); // if lookup fails this returns raw SkypeID if fallback allowed, otherwise ""
+		bool foundName = false;
 
 		// builds the appropriate query based on what we're trying to look up
 		// NOTE: we do the "IS NOT NULL" check to protect against the increasingly common NULL corruption in Skype's databases
@@ -202,7 +203,7 @@ namespace SkypeParser
 		rc = sqlite3_prepare_v2( mDB, nameQuery.c_str(), -1, &pStmt, NULL );
 		if( rc != SQLITE_OK ){
 			sqlite3_finalize( pStmt );
-			return dispName; // ""
+			return dispName; // sql failed to execute; returns fallback if allowed, otherwise ""
 		}
 
 		// bind parameters
@@ -215,20 +216,21 @@ namespace SkypeParser
 		if( sqlite3_step( pStmt ) == SQLITE_ROW ){ // found
 			// grab column in result row
 			dispName = reinterpret_cast<const char *>( sqlite3_column_text( pStmt, 0 ) ); // from_dispname
+			foundName = true;
 		}
 
 		// free up statement
 		sqlite3_finalize( pStmt );
 
-		// if dispName is "", it means that nothing was found. if timestamp is > 0 it means a specific timestamp was required. in that case, we should re-try the query using "earliest name" instead.
-		if( dispName == "" && timestamp > 0 ){ // no match, and we had asked for a specific timestamp
-			return getDisplayNameAtTime( skypeID, 0 ); // does a single re-query with "earliest name" method instead, which is guaranteed to solve cases where we're asking about their name slightly before their name appears in the log
+		// if no name was found and timestamp is > 0, it means a specific timestamp was required. in that case, we should re-try the query using "earliest name" instead.
+		if( !foundName && timestamp > 0 ){ // no match, and we had asked for a specific timestamp
+			return getDisplayNameAtTime( skypeID, 0, allowFallback ); // does a single re-query with "earliest name" method instead, which is guaranteed to solve cases where we're asking about their name slightly before their name appears in the log; will use fallback as a last resort if allowed
 		}else{ // query succeeded, or query failed but was not of "timestamp > 0" type
-			// return result
+			// returns their display name if found, otherwise raw SkypeID fallback if allowed or "" if not allowed
 			return dispName;
 		}
 
-		// FIXME: if ALL of this fails, we MAY want to do one final "Contacts" table lookup instead, as that is guaranteed to have names for people that have joined conferences but caused 0 events and never been seen by us anywhere else
+		// FIXME: if ALL of this fails, we MAY want to do one final "Contacts" table lookup instead, as that is guaranteed to have names for people that have joined conferences but caused 0 events and never been seen by us anywhere else; but then again, such people don't matter in the export since they contributed nothing, and the "raw SkypeID" fallback is good enough for them
 	}
 
 

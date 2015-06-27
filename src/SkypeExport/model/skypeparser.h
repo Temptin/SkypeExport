@@ -62,7 +62,7 @@ namespace SkypeParser
 
 		const std::string& getMySkypeID();
 		const skypeIDs_t& getSkypeUsers();
-		std::string getDisplayNameAtTime( const std::string &skypeID, time_t timestamp );
+		std::string getDisplayNameAtTime( const std::string &skypeID, time_t timestamp, bool allowFallback = true );
 
 		std::string getConferenceTitle( int32_t convoID );
 		std::vector<int32_t> getConferencesForSkypeID( const std::string &skypeID );

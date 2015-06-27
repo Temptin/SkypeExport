@@ -910,8 +910,7 @@ namespace SkypeParser
 						boost::char_separator<char> sep( " " );
 						boost::tokenizer< boost::char_separator<char> > tokens( identities, sep );
 						for( boost::tokenizer< boost::char_separator<char> >::iterator identities_it( tokens.begin() ); identities_it != tokens.end(); ++identities_it ){
-							std::string displayName = getDisplayNameAtTime( (*identities_it), thisEvent.row_timestamp ); // this grabs the person's name at the time they were invited, or the earliest name if we don't know their name yet.
-							if( displayName == "" ){ displayName = (*identities_it); } // if no displayname was found, fall back to showing the raw SkypeID instead; this is what Skype does too if it doesn't know the details for a contact yet.
+							std::string displayName = getDisplayNameAtTime( (*identities_it), thisEvent.row_timestamp ); // this grabs the person's name at the time they were invited, or the earliest name if we don't know their name yet. if no displayname was found, it automatically falls back to showing the raw SkypeID instead; this is what Skype does too if it doesn't know the details for a contact yet.
 							thisEvent.asXHTML << displayName;
 							if( boost::next( identities_it ) != tokens.end() ){ thisEvent.asXHTML << ", "; } // appended after every element except the last one
 						}
