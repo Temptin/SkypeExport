@@ -393,7 +393,7 @@ namespace SkypeParser
 
 		// Grab Messages
 		// build conference or 1on1 query
-		std::string logQuery = "SELECT type, chatmsg_status, author, from_dispname, body_xml, timestamp, edited_timestamp, guid, convo_id, identities FROM Messages WHERE (";
+		std::string logQuery = "SELECT type, sending_status, chatmsg_status, author, from_dispname, body_xml, timestamp, edited_timestamp, guid, convo_id, identities FROM Messages WHERE (";
 		if( !isConference ){
 			// OLD QUERY:
 			//logQuery.append("dialog_partner=?"); // grabs all messages and status nodes to/from the person with the given skypeid.
@@ -414,7 +414,7 @@ namespace SkypeParser
 					"( author=? AND ((' '||identities||' ') LIKE '% '||?||' %') )" // ?2: their name, ?3: our name
 					" OR "
 					/* if we sent the conference invite (status 1/2 = outgoing message), and our 1on1 chat partner was in the list of invitees: */
-					"( (chatmsg_status=1 OR chatmsg_status=2) AND ((' '||identities||' ') LIKE '% '||?||' %') )" // ?4: their name
+					"( (sending_status=1 OR sending_status=2) AND ((' '||identities||' ') LIKE '% '||?||' %') )" // ?4: their name
 				"))"
 			);
 		}else{
@@ -459,6 +459,7 @@ namespace SkypeParser
 		struct SkypeEvent {
 			// database columns for current row
 			int32_t row_type; // integer
+			int32_t row_sending_status; // integer
 			int32_t row_chatmsg_status; // integer
 
 			const char *row_author; // text
@@ -476,7 +477,7 @@ namespace SkypeParser
 
 			// state variables for current row (stuff that will be programmatically calculated/filled in based on row values)
 			uint8_t direction; // denotes the event direction of the currently-parsed event; 2 for outgoing, 4 for incoming. does not need to be initialized, as it's updated at the start of each row-loop.
-			struct tm timestamp_tm; // time structure that's always filled with the parsed version of the current event's original timestamp (thisEvent.row_timestamp), and is usable every time you need to output or work with the date/time representation of the timestamp of this event.
+			struct tm timestamp_tm; // time structure that's always filled with the parsed version of the current event's original (non-edited-time) timestamp (thisEvent.row_timestamp), and is usable every time you need to output or work with the date/time representation of the timestamp of this event.
 			std::stringstream asXHTML; // returns the event as XHTML; is emptied at the start of each new event and built during the event parsing step, and finally used as part of the output of that event
 
 			// initialization
@@ -485,47 +486,67 @@ namespace SkypeParser
 		while( sqlite3_step( pStmt ) == SQLITE_ROW ){
 			// store integers and addresses for the current row (NOTE the null-checking rules for any columns that can be null)
 			thisEvent.row_type = sqlite3_column_int( pStmt, 0 );
-			thisEvent.row_chatmsg_status = sqlite3_column_int( pStmt, 1 );
-			thisEvent.row_author = reinterpret_cast<const char *>( sqlite3_column_text( pStmt, 2 ) );
-			thisEvent.row_from_dispname = reinterpret_cast<const char *>( sqlite3_column_text( pStmt, 3 ) );
-			thisEvent.row_body_xml = reinterpret_cast<const char *>( sqlite3_column_text( pStmt, 4 ) ); // can be NULL extremely rarely, in which case it will be a NULL pointer; has been observed for types 4, 10, 13, 39, 51, 100 and 110 (WE ONLY USE IT FOR EVENTS 61 AND 60, SO WE CAN SAFELY IGNORE THE RISK OF "NULL")
-			thisEvent.row_timestamp = sqlite3_column_int64( pStmt, 5 ); // NOTE: we're grabbing the timestamps as int64's even though they should fit into ints, just be aware of that. some platforms may use an int32 time_t instead of int64, but it will probably convert just fine.
-			thisEvent.row_edited_timestamp = sqlite3_column_int64( pStmt, 6 ); // is NULL (int 0 due to _int64() converting NULL columns to 0) for every message/event that has not been edited (that will be the majority), in which case it will be set to 0
-			thisEvent.row_guid = sqlite3_column_blob( pStmt, 7 ); // can be NULL extremely rarely (seemingly only for pre-Skype5 events, and only rarely at that), in which case it will be a NULL pointer; has been observed for types 30, 39 and 68 (WE ONLY USE THIS VALUE FOR EVENT 68, SO WE WILL PERFORM A NULL CHECK AND AVOID TRYING TO LOOK UP FILE TRANSFER INFO WHERE IT'S NULL; HAS ONLY BEEN OBSERVED FOR A FEW SCATTERED PRE-SKYPE5 EVENTS AND IS SURELY A BUG, AS THOSE TRANSFERS WERE LOGGED PROPERLY AND DID HAVE GUIDS IN THE TRANSFERS TABLE, IT WAS JUST THE MESSAGE GUIDS THAT WERE MISSING)
-			thisEvent.row_convo_id = sqlite3_column_int( pStmt, 8 );
-			thisEvent.row_identities = reinterpret_cast<const char *>( sqlite3_column_text( pStmt, 9 ) ); // is NULL for every message/event that doesn't make use of the identities field (that will be the majority), in which case it will be a NULL pointer (ONLY USED FOR EVENT TYPE 10, IN WHICH CASE IT IS NEVER NULL, SINCE THE IDENTITIES ARE THE VALUE OF THE EVENT)
+			thisEvent.row_sending_status = sqlite3_column_int( pStmt, 1 );
+			thisEvent.row_chatmsg_status = sqlite3_column_int( pStmt, 2 );
+			thisEvent.row_author = reinterpret_cast<const char *>( sqlite3_column_text( pStmt, 3 ) );
+			thisEvent.row_from_dispname = reinterpret_cast<const char *>( sqlite3_column_text( pStmt, 4 ) );
+			thisEvent.row_body_xml = reinterpret_cast<const char *>( sqlite3_column_text( pStmt, 5 ) ); // can be NULL extremely rarely, in which case it will be a NULL pointer; has been observed for types 4, 10, 13, 39, 51, 100 and 110 (WE ONLY USE IT FOR EVENTS 61 AND 60, SO WE CAN SAFELY IGNORE THE RISK OF "NULL")
+			thisEvent.row_timestamp = sqlite3_column_int64( pStmt, 6 ); // NOTE: we're grabbing the timestamps as int64's even though they should fit into ints, just be aware of that. some platforms may use an int32 time_t instead of int64, but it will probably convert just fine.
+			thisEvent.row_edited_timestamp = sqlite3_column_int64( pStmt, 7 ); // is NULL (int 0 due to _int64() converting NULL columns to 0) for every message/event that has not been edited (that will be the majority), in which case it will be set to 0
+			thisEvent.row_guid = sqlite3_column_blob( pStmt, 8 ); // can be NULL extremely rarely (seemingly only for pre-Skype5 events, and only rarely at that), in which case it will be a NULL pointer; has been observed for types 30, 39 and 68 (WE ONLY USE THIS VALUE FOR EVENT 68, SO WE WILL PERFORM A NULL CHECK AND AVOID TRYING TO LOOK UP FILE TRANSFER INFO WHERE IT'S NULL; HAS ONLY BEEN OBSERVED FOR A FEW SCATTERED PRE-SKYPE5 EVENTS AND IS SURELY A BUG, AS THOSE TRANSFERS WERE LOGGED PROPERLY AND DID HAVE GUIDS IN THE TRANSFERS TABLE, IT WAS JUST THE MESSAGE GUIDS THAT WERE MISSING)
+			thisEvent.row_convo_id = sqlite3_column_int( pStmt, 9 );
+			thisEvent.row_identities = reinterpret_cast<const char *>( sqlite3_column_text( pStmt, 10 ) ); // is NULL for every message/event that doesn't make use of the identities field (that will be the majority), in which case it will be a NULL pointer (ONLY USED FOR EVENT TYPE 10, IN WHICH CASE IT IS NEVER NULL, SINCE THE IDENTITIES ARE THE VALUE OF THE EVENT)
 			// clear the asXHTML stringstream's old contents to give this event/row a fresh start
 			thisEvent.asXHTML.str( "" );
 			/*
 				Column/Event Explanations:
 
-				type (integer): exact type of the message, more reliable than trying to understand chatmsg_type+chatmsg_status pairs, since this identifies events clearly, but use in conjunction with the latter.
+				type (integer): exact type of the message, more reliable than trying to understand chatmsg_type+chatmsg_status pairs, since this identifies events clearly, but use it in conjunction with the latter.
 
-				(NOT USED) chatmsg_type (integer): the type of event. different from the always-reliable "type" above, in that this seems to be some sort of legacy value. we will never need it, as "type" is the true type of the event, and chatmsg_status is the direction, which is all we need. has also been observed to be NULL extremely rarely (might be due to a bug in Skype, as it should NEVER be NULL).
+				(NOT USED) chatmsg_type (integer): the type of event. different from the always-reliable "type" above, in that this seems to be some sort of legacy value. we will never need it, as "type" is the true type of the event, and chatmsg_status (and sending_status, use both) is the direction and optional "pending" status, which is all we need. has also been observed to be NULL extremely rarely (might be due to a bug in Skype, as it should NEVER be NULL).
 
 				chatmsg_status (integer): the transfer status of the event.
 					1: pending, outgoing (events that have not yet been delivered to the recipient, either because they are offline or because you lost your P2P connection)
 					2: delivered, outgoing (events that have been delivered to the recipient)
 					4: delivered, incoming (events that have been delivered to you)
 					* no other values will occur
+					WARNING:
+						* Skype's "cloud history" feature is bugged in many ways and omits a lot of database fields or incorrectly fills them in, and unfortunately it also has a serious bug regarding their chatmsg_status field...
+						* when your computer downloads past history from Skype's servers and merges it into the local database, the data for the earliest events in your 1on1 chats AND conferences will ALL have a chatmsg_status of "4" (incoming event) even if YOU sent them OUTGOING.
+						* in my observations, it seems that the status code fixes itself back to properly using "2" (outgoing event, delivered) in your first event *after* *someone else* has spoken in the conference / your 1on1 chat partner has spoken. so if the talk flow is "you, them, you", the "you, them" part will have 4 (incoming) and the final "you" will be 2 (outgoing), and everything after that will be correct...
+						* note, however, that it's still SAFE (and actually REQUIRED, since it's the ONLY way) to rely on "chatmsg_status == 1" to test if an outgoing message is PENDING, since the "1" code is never inserted anywhere by the buggy "cloud history" Skype feature. the chatmsg_status == 1 field is the ONLY way to check if an outgoing message is still pending!
+						* the "chatmsg_status" field is of course working perfectly as intended when messages ORIGINATE from your machine and are put directly into the database by Skype. the "all initial messages have a status of 4" problem only appears when skype DOWNLOADS history from the cloud.
+						* there are only two potential methods we could use to solve this "cloud history" issue:
+						* A: do a string comparison of "author" against the database owner's SkypeID to see if they're the author of the message, in which case it's clearly outgoing. this is a terrible idea, since it would be slow and involve string comparison function calls on every event. don't do that!
+						* B: "sending_status":
+							* it's a somewhat new database column. the earlier "chatmsg_status" was the initial column in the earliest versions of Skype and is the most universal, but the newer "sending_status" column has existed for a VERY long time too (at least since Skype 4, maybe even earlier).
+							* however, the earliest versions of Skype used an entirely different non-SQL database format which we don't even support anyway, so someone with an old version of Skype (without a "sending_status" column) would have to first import their history into a newer Skype version before they can even run SkypeExport, and hopefully their client would then correctly upgrade their old "chatmsg_status == 2" fields to new "sending_status == 2" fields. either way, I don't think anyone has such an old database lying around anyway, so this is not a concern; we can DEFINITELY rely on this field! it's been there for more than half a decade *at least*.
+							* it is NULL for incoming messages (seemingly always?) and 1 or 2 for outgoing messages. since its behavior with incoming messages is not fully studied, it's best to *explicitly* check for its *known* values signifying outgoing messages: codes 1 and 2.
+							* in Skype 6+ with "cloud messaging", it is ALWAYS 2 since the message is instantly delivered to the *cloud* server.
+							* you have to ALSO rely on chatmsg_status if you want to know if a message is still "Pending" in Skype 6+...
+							* ...its relation to chatmsg_status is easiest described with examples:
+							* - Delivered Message in Skype 6+: chatmsg_status=2, sending_status=2
+							* - Delivered Message in Skype 5 (and earlier): chatmsg_status=2, sending_status=2
+							* - Pending Message in Skype 6+: chatmsg_status=1, sending_status=2
+							* - Pending Message in Skype 5 (and earlier): chatmsg_status=1, sending_status=1
+							* as you can see, it's IMPOSSIBLE to rely on "sending_status" to show if a message is PENDING in Skype 6+.
+							* therefore, a good parsing strategy to avoid the "cloud history" bugs is to use sending_status == 1 OR 2 to detect "outgoing message", ELSE "incoming message", but to CONTINUE using chatmsg_status == 1 to check if an outgoing message is still PENDING
 
-				* type/chatmsg_type/chatmsg_status meanings:
-					* WARNING: DO NOT USE chatmsg_status to determine direction during parsing; use newEventDirection which will be I for incoming or O for outgoing.
+				sending_status (integer): the transfer status of outgoing (only?) events; see "chatmsg_status" details above for more about this field and why we have to rely on it now.
+
+				* type/chatmsg_type meanings:
+					* WARNING: DO NOT USE sending_status to determine direction during parsing (since it can have multiple values that mean the same direction and is therefore unwieldy); use the "thisEvent.direction" variable instead, which will be 2 for outgoing or 4 for incoming.
 					type:61=regular text message
 						chatmsg_type:3 (always)
-							chatmsg_status:1=outgoing (pending), 2=outgoing (delivered), 4=incoming (delivered)
 						* can be empty, either via editing into an empty string, or via right click > Remove to delete the message. these actions are equivalent in Skype, and editing a string to "" will in fact act like you've just deleted the message, and block you from editing it again. empty strings are stored as a single null character, NOT as a null pointer.
 					type:60=/me emote
 						chatmsg_type:7 (always)
-							chatmsg_status:2=outgoing (delivered), 4=incoming (delivered)
 						* the note for type61 above applies here as well; emotes can be edited and removed, but Skype actually doesn't handle this, as their programmers hadn't thought of the possibility of a user editing an emote, so it will not reflect the edited message until you restart Skype, and removed messages are simply shown as "DisplayName ", meaning an empty string.
 						* we'll render empty emotes identically to Skype, in the interest of accuracy, even though Skype's behavior is bugged in this respect.
 					type:68=file transfer
 						chatmsg_type:7=file transfer, I want to be able to say that this is ALWAYS used but there was ONE exception below.
-							chatmsg_status:2=outgoing, 4=incoming
 						chatmsg_type:18=? FIXME: only seen this ONCE, in my entire Skype history, and it was indeed a file transfer, of an image, making this "18" value very strange.
-							chatmsg_status:2=outgoing, 4=incoming
-						* my guess is we should rely on type:68 and just ignore chatmsg_type for file transfers. chatmsg_status still shows the actual direction of the transfer.
+						* my guess is we should rely on type:68 and just ignore chatmsg_type for file transfers. sending_status (as usual) still shows the actual direction of the transfer.
 						* use guid to look up the transfer details from the Transfers table
 						* outgoing transfers to conferences have multiple entries in the Transfers table (one per recipient), and we'll have to take care to only count each file once, by only counting unique filepaths when determining how many files we're sending out
 						* Transfers table description:
@@ -545,7 +566,6 @@ namespace SkypeParser
 							NOTE: we COULD print the "filepath" field as part of the log output, as it's a string value showing the source/destination path on OUR disk. this contains stuff like "/Volumes/Secondary OS/path/to/file.jpg"... kinda nice to have but then again the surrounding discussion reveals what the subject was and lets you determine what the files were about, and also by the time you've made the log the files have probably been either moved or deleted in most cases. finally, printing such info would clutter the log files, and storing it as <a href="file://path"> would be nonsensical as A) most paths would be broken and B) the paths could contain sensitive info and leak such info if the user shares the log with someone. logs shouldn't contain "hidden" info like that.
 					type:201=cloud file transfer (new feature as of Skype 6.22+)
 						(DO NOT USE) chatmsg_type:in my testing it has consistently been 7 for incoming, 3 for outgoing, but is very often NULL due to a bug in Skype. the fact that it is 3 for outgoing is quite interesting, since chatmsg_type seems to be the legacy (very old versions of Skype) message type indicator, and type 3 is "regular chat message", which supports my theory (below) that old clients which don't support cloud file transfers will receive these messages as regular chat messages instead. but then again, chatmsg_type 7 is used for both /me emotes and file transfers, so maybe there is no correlation. either way, ignore this chatmsg_type value, since it's completely unreliable.
-						chatmsg_status:use this to determine the direction of the cloud transfer event, as usual
 						body_xml:the XML describing the contents of this cloud file transfer (simply parse it to get a list of files)
 						* this is a new feature where Skype will automatically upload images (no other formats for now) into the cloud and send a tiny link to the recipient, which their Skype client parses and grabs as a thumbnail, with an optional ability to click the image to download and see the full file. the images are stored on the Skype server with an unknown duration, possibly indefinitely since they're moving more and more to the cloud (they're even storing Chat History in the cloud now, and are planning to do *all* message transfers via the cloud in the future and to remove the p2p functionality! goodbye privacy!)
 						* when you drop files into the chat, Skype will use a series of checks to determine whether to use regular file transfer OR if it's a file format that can be sent via its cloud service: it first checks if the file is >0 bytes (if 0 bytes, it's sent as regular file transfer EVEN if the extension is eligible for cloud storage), then it looks at the file EXTENSION to see if it's .JPG or .PNG (those are the only two formats that have been confirmed to be sent via the cloud so far, but others may be available too), and then it IGNORES the actual extension and VALIDATES that the contents are truly EITHER JPG or PNG (meaning that a JPG file named as .png or vice versa WILL work since it passes the independent content validation). if the content validation fails (if the file is corrupt/invalid or contains another unsupported format), the client will display "Sending failed" BUT the event will still be logged in the database identically to a regular successful transfer. unfortunately, the "sending failed" AND "filesize" information are both retrieved on-the-fly via the JSON-based Cloud API from the cloud link each time the client starts up, and the API is protected with an access token, so we unfortunately can't get access to the failure status (or the filesize).
@@ -565,7 +585,7 @@ namespace SkypeParser
 					type:30=call start (same _type and _status as 39)
 					type:39=call end
 						chatmsg_type:18 (always)
-							chatmsg_status:2=outgoing, 4=incoming (NOTE: ONLY USABLE FOR CALL START; call_end events haven't got the proper direction status to show who really ended the call and should NOT be used for that)
+						* NOTE/FIXME: chatmsg_status is ONLY USABLE FOR CALL START; call_end events haven't got the proper direction status to show who really ended the call and should NOT be used for that. it MIGHT be possible to use the newer "sending_status" column if THAT one shows who hung up. would require some testing and investigation and isn't really worth it, though... "Call ended" is as good as "The other person ended the call".
 						* the call_start event happens either A) when they pick up, or B) when the program gives up trying to call them (assumes they're not going to answer, which takes 2 minutes of trying (in Skype5 as of now, may change later))
 						* the call_end happens at exactly exactly the same timestamp (OR up to 1 second later) as call_start when they declined/didn't pick up. this means that the timestamp-difference between the end and start of a call is NOT usable to determine if it was picked up or the length of the call. there's up to 1 second of sway, which will cause false "call picked up" positives, and also misreport the length of a call by up to 1 second. the only workarounds are to either A) ignore timestamp differences if they are just 1 second (interpret diff < 2 as "not picked up") which sacrifices duration accuracy and pick-up accuracy (what if the call WAS 1 second in duration?), or B) look up the Call in the calls table. I'm opting for the latter.
 						* there is a column, call_guid, which identifies each call for Skype5 but it's NULL for VERY OLD calls performed in Skype versions older than 5, so we cannot rely on it under any circumstance!
@@ -579,17 +599,15 @@ namespace SkypeParser
 							duration (integer): the call duration in seconds if picked up, otherwise null
 							(NOT USED) is_incoming (integer): 1 if true 0 if false. useless since we only need it for the call start event and for that we can just look at the event direction to know whether it's incoming or outgoing.
 							(NOT USED) is_conference (integer): 1 if true, null otherwise
-					type:10=person added to group conference; if you were the one who created the conference then the chatmsg_status will be 1 or 2 (outgoing) and the people you added will be in the space-separated "identities" field, and the convo_id will be the conference ID (meaning that it will NOT be the current 1on1 convo_id, so you MUST find type10 events separately). if someone ELSE adds you, the convo_id is the conference ID, the "author" is their skypeid, and YOU are in the "identities" field. any people that you don't have on your contact list are added to your Contacts table, with is_permanent=0 to signal that you have not added them to your permanent contacts, but that their data is available for use i.e. getting their displaynames. after that, it's up to you to keep track of joins/leaves/participant counts via event types 13 and 10. [[NOTE ABOUT LEGACY VERSIONS OF SKYPE (5 or earlier, possibly 4 and earlier), WHERE FEATURES DIFFER AND WROTE OTHER VALUES WHICH SHOULD NOT BE RELIED ON: when people add you, convo_id is 0 (except possibly re-used IDs on re-used conferences). "participant_count" is the number of people in the conference (this number will keep rising as more people are added, and lowering as people leave); but in modern versions of Skype 6+ this value is just NULL at all times so it can't be used. when you first joined a conference CREATED BY SOMEONE ELSE, an event type "100" WAS also fired (but this no longer happens in Skype 6+), with an identities field like "coolguy123 otherguy123 grince.farbgold", in other words a space-separated list of all current participants.]]
+					type:10=person added to group conference; if you were the one who created the conference then the sending_status will be 1 or 2 (outgoing) and the people you added will be in the space-separated "identities" field, and the convo_id will be the conference ID (meaning that it will NOT be the current 1on1 convo_id, so you MUST find type10 events separately). if someone ELSE adds you, the convo_id is the conference ID, the "author" is their skypeid, and YOU are in the "identities" field. any people that you don't have on your contact list are added to your Contacts table, with is_permanent=0 to signal that you have not added them to your permanent contacts, but that their data is available for use i.e. getting their displaynames. after that, it's up to you to keep track of joins/leaves/participant counts via event types 13 and 10. [[NOTE ABOUT LEGACY VERSIONS OF SKYPE (5 or earlier, possibly 4 and earlier), WHERE FEATURES DIFFER AND WROTE OTHER VALUES WHICH SHOULD NOT BE RELIED ON: when people add you, convo_id is 0 (except possibly re-used IDs on re-used conferences). "participant_count" is the number of people in the conference (this number will keep rising as more people are added, and lowering as people leave); but in modern versions of Skype 6+ this value is just NULL at all times so it can't be used. when you first joined a conference CREATED BY SOMEONE ELSE, an event type "100" WAS also fired (but this no longer happens in Skype 6+), with an identities field like "coolguy123 otherguy123 grince.farbgold", in other words a space-separated list of all current participants.]]
 						chatmsg_type:1 (always, apparently)
-							chatmsg_status:as usual this means the direction (incoming/outgoing) of the event
-								* parsing strategy: in conference mode, just display a "X has joined the conference" message as usual; but in 1on1 mode, you must parse Messages for ALL type10 events REGARDLESS of convo_id, and check the author/identities/chatmsg_status fields to determine if this is related to your current 1on1 partner.
+								* parsing strategy: in conference mode, just display a "X has joined the conference" message as usual; but in 1on1 mode, you must parse Messages for ALL type10 events REGARDLESS of convo_id, and check the author/identities/sending_status fields to determine if this is related to your current 1on1 partner.
 								* LEGACY NOTE (no longer true as of Skype 6+, since they've stopped storing a "type100: these people are in the conference" sync event in the database, and instead made type10 reliable even for incoming invites, so this note no longer applies!): the initial type10 event that started the conference is ONLY logged with the name of the person you were chatting with at the time and ONLY IF *YOU* CREATED THE CONFERENCE, NOT for any of the other people that were added to the conference, and NOT if THEY invited YOU, so you will not see conference links for those people when viewing their logs; you only ever see links when YOU created the conference, and ONLY for the one person you were chatting with at the time you pressed the "+add people" button.
 								* LEGACY NOTE (no longer matters, since the event has been removed, and we never needed it anyway): we will not be parsing event 100 (the "people in the conference" sync event), because we don't care who is already in the conference.
 								* LEGACY NOTE (this behavior has changed; I think the type10 identities now lists everybody in the conference at the time you were invited; I haven't investigated enough since it doesn't matter; what matters is that we now get type10 events at all times which allows us to effortlessly detect when conferences begin): the "identities" field for event type 10 is USUALLY *one* name because of how people use it (when YOU *and other people* become invited to a conference, meaning when some third party selects you and a bunch of others ot make a conference, then you will get a type 10 with JUST your name in it, and a type 100 with the other names. also, when someone adds JUST ONE person to the conference, you get 1 identity. the trouble happens when someone adds 2+ people after the conference started, OR when *YOU* start the conference with multiple people selected. in those cases, the identities field will have as many space-separated SkypeIDs as needed.
 					type:13=person left the conference.
 						chatmsg_type:4 (always, apparently)
-							chatmsg_status:as usual this means the direction (incoming/outgoing) of the event; if it is incoming then someone else left, and if it is outgoing then you left.
-								* this one is really easy to handle, just use the author/from_dispname to show the person that left for incoming, or write "you left" for outgoing. unlike type 10, "identities" is not used at all here, thankfully.
+								* this one is really easy to handle, just use the author/from_dispname to show the person that left if the event was INCOMING, or write "you left" if the event was OUTGOING. unlike type 10, "identities" is not used at all here, thankfully.
 								* this event only occurs inside conference convo_id streams, so no need to check the isConference flag.
 				* NOTE: outgoing means from YOU to the partner --->, and incoming means from the PARTNER to you <---
 
@@ -603,7 +621,7 @@ namespace SkypeParser
 
 				edited_timestamp (integer): null most of the time, but when it contains a value it gives the time of the last edit to the message
 
-				(NOT USED) dialog_partner (text): the exact, permanent username/loginname (NOT their pretty "full display name") of the person you are chatting with in single-person chats. always has the same value even when THEY send YOU a message. example: "grince.farbgold". this value is null in multiperson chats (conferences), apart from the very first message in a conference where it seems to denote the person you were chatting with when the conference was created. NOTE: There is a bug in Skype 6 (or higher) which sometimes stores a NULL instead of the proper dialog_partner into the database, which means that it's no longer reliable to use this field for ANYTHING. We've switched to convo_id scanning instead, with a special exception to also catch Type10 ("added to conference") events.
+				(NOT USED) dialog_partner (text): the exact, permanent username/loginname (NOT their pretty "full display name") of the person you are chatting with in single-person chats. always has the same value even when THEY send YOU a message. example: "grince.farbgold". this value is null in multiperson chats (conferences), apart from the very first message in a conference where it seems to denote the person you were chatting with when the conference was created. NOTE: There is a bug in Skype 6 (or higher) which sometimes stores a NULL instead of the proper dialog_partner into the database, and YET ANOTHER bug with "cloud history" which practically ALWAYS stores a NULL there and sometimes even stores YOUR OWN name there if you're in a conference, which means that it's no longer reliable to use this field for ANYTHING. We've switched to convo_id scanning instead, with a special exception to also catch Type10 ("added to conference") events.
 
 				guid (blob): this is a globally unique identifier for the message. we only need it when parsing filetransfer data, as the filetransfer information is stored under this guid.
 
@@ -611,7 +629,7 @@ namespace SkypeParser
 
 				convo_id (integer): this is the unique identifier for your dialog partner combination; it is permanent (the same whenever you talk to the same partner). also, whenever you create a conference chat (more than 2 people), it generates a new convo_id. The "Conversations" table contains mappings for id -> partner's "identity" (skypeID) and other info (and its "type" column means 1=1on1, 2=conference). we are using convo_id to grab all messages from our 1on1 conversations and conferences, as well as to correlate calls in the Calls table. WARNING: the convo_id of type10 ("added to conference") events will NOT be the 1on1 id; it will be the CONFERENCE's id. so the solution for finding "conference created" events during 1on1 scanning is to ALSO scan for ALL type10 events and then narrowing them down by ensuring that they were either sent from you to the 1on1 partner, or from the 1on1 partner to you. this is achieved with the advanced SQL statement in the "grab messages" code above.
 
-				identities (text): this is NULL for EVERY event type EXCEPT a handful. when it's NOT null, it is a space-separated list of one or more skypeIDs of the people that are taking part of that event. here are the eventtypes where it is used: 110 (unknown event). 100: conference sync event (contains list of existing conference participants, seems to only be sent out when you are added to someone else's conference). 51 (unknown event, almost 100% sure it is for accepted friend request). 50 (friend request; status 2/4 indicates direction). 39 (call start, contains list of people called; one in 1on1, one or more in conference). 30 (call end; value similar to call start, except it may possibly contain early dropouts as single identities entries, until finally everyone has dropped out; OR perhaps it just indicates when YOU hung up and the people that were also in that call, even people that dropped out earlier? FIXME: test that? or not give a shit? I prefer NOT GIVE A SHIT, but someone else is free to investigate!). 10 (conference join event; identities contains the list of people that were added, usually just one but will be several if more than one person is added at a time). oddly enough event 13 (conference leave event) does NOT use identities, instead the "author"/"from_dispname" is the person that left (which can be yourself, just use chatmsg_status to judge direction to see if it was you that left)
+				identities (text): this is NULL for EVERY event type EXCEPT a handful. when it's NOT null, it is a space-separated list of one or more skypeIDs of the people that are taking part of that event. here are the eventtypes where it is used: 110 (unknown event). 100: conference sync event (contains list of existing conference participants, seems to only be sent out when you are added to someone else's conference). 51 (unknown event, almost 100% sure it is for accepted friend request). 50 (friend request; status 2/4 indicates direction). 39 (call start, contains list of people called; one in 1on1, one or more in conference). 30 (call end; value similar to call start, except it may possibly contain early dropouts as single identities entries, until finally everyone has dropped out; OR perhaps it just indicates when YOU hung up and the people that were also in that call, even people that dropped out earlier? FIXME: test that? or not give a shit? I prefer NOT GIVE A SHIT, but someone else is free to investigate!). 10 (conference join event; identities contains the list of people that were added, usually just one but will be several if more than one person is added at a time). oddly enough event 13 (conference leave event) does NOT use identities, instead the "author"/"from_dispname" is the person that left (which can be yourself, just use sending_status to judge direction to see if it was you that left)
 			*/
 			switch( thisEvent.row_type ) // filters out just the events we care about
 			{
@@ -641,7 +659,7 @@ namespace SkypeParser
 
 
 				// Grab the chunk direction (1: pending, outgoing. 2: delivered, outgoing. 4: delivered, incoming) and store it as either 2 or 4.
-				thisEvent.direction = ( thisEvent.row_chatmsg_status == 1 || thisEvent.row_chatmsg_status == 2 ? 2 : 4 ); // 2 = outgoing, 4 = incoming
+				thisEvent.direction = ( thisEvent.row_sending_status == 1 || thisEvent.row_sending_status == 2 ? 2 : 4 ); // 2 = outgoing, 4 = incoming
 
 
 				// Determine whether we should make a new chat message container. Reasons for doing so: Day changed (day changes close the chunk and set parserState.chunkState to 0, which is how it knows to make a new container for the new day). Person talking changed (during conference). Message direction changed (incoming/outgoing). Someone (even yourself) changed their displayname (either in 1 on 1 or conference).
