@@ -1,5 +1,13 @@
 # Release History
 
+## SkypeExport v1.4.0 Stable (December 19th, 2015)
+
+This release brings support for Microsoft's auto-migrated "Windows Live" Skype IDs, and fixes a rare issue with databases containing thousands of conferences. It's the *last-ever* official release of SkypeExport, due to personal time constraints. We already *fully* support the Skype protocol and all of its features in a future-proof way, and we've been stable for 4 years with only a few minor updates when Microsoft bought Skype and added their own Cloud features. *All* past (classic) and present versions of Skype are fully supported - on Windows, OS X and Linux! Have fun and enjoy!
+
+* (Enhancement) Support for exporting Microsoft's auto-migrated "Windows Live Messenger" IDs, which are their internal, auto-created Skype IDs in the format "live:old_messenger_username" (such as "live:rince.farbgold").
+* (Bug Fix) Improved conference participant scanner. People with over 1000 conferences were able to reach SQLite's database query limits. The query has now been rewritten and future-proofed to support an unlimited number of conferences.
+
+
 ## SkypeExport v1.3.0 Stable (June 27th, 2015)
 
 This is the final release of SkypeExport, and it contains multiple important fixes to deal with _all_ of the remaining flaws in Skype's unreliable "cloud history" service. Official support for the Linux platform has also been added at last, thanks to a collaborative effort with the brilliant Santosh Thoduka. What a fantastic way to end, with _full_ support for _all_ past and present versions of Skype on Windows, OS X and now _Linux_!
