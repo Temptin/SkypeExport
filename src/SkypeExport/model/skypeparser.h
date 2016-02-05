@@ -68,6 +68,7 @@ namespace SkypeParser
 		std::vector<int32_t> getConferencesForSkypeID( const std::string &skypeID );
 
 		void exportUserHistory( const std::string &skypeID, const std::string &targetFile, uint8_t timeFormat, int8_t timeReference );
+		std::string getFullHistoryAsXHTML( const std::string &skypeID, uint8_t timeFormat, int8_t timeReference );
 		std::string getHistoryAsXHTML( void *searchValue, bool isConference, uint8_t timeFormat, int8_t timeReference );
 	};
 }

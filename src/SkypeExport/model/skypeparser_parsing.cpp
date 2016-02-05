@@ -9,31 +9,8 @@ namespace SkypeParser
 		std::ofstream xhtmlFileWriter( targetFile.c_str(), std::ios::out ); // NOTE: this is NOT a binary output stream, as we want \n to be translated to the appropriate newlines for the platform, in case the user wants to look at the raw log file in an editor that only supports platform newlines.
 		if( !xhtmlFileWriter ){ throw std::ios::failure( "error opening html file for writing" ); }
 
-		// page header
-		xhtmlFileWriter << "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n"
-		                << "<html>\n"
-		                << "	<head>\n"
-		                << "		<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n" // we use utf-8 since that's the encoding used by Skype messages
-		                << "		<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\" /> <!-- tells IE to use standards-compliant mode and the newest engine -->\n"
-		                << "		<title>Skype History for " << getDisplayNameAtTime( skypeID, -1 ) << "</title>\n" // puts the person's latest displayname in the page title FIXME: verify that Skype has already escaped < > in the database (as &lt; and &gt;), otherwise we must do this replacement manually; this ALSO applies for ALL other places that the displayname is output
-		                << "		<style type=\"text/css\">\n"
-		                << "			" << style_compact_data_css << "\n"
-		                << "		</style>\n"
-		                << "	</head>\n"
-		                << "	<body>\n";
-
-		// grab the main conversation history for the person
-		xhtmlFileWriter << getHistoryAsXHTML( (void *)skypeID.c_str(), false, timeFormat, timeReference ) << "\n";
-
-		// output all conferences the person took part in (if any)
-		std::vector<int32_t> confs = getConferencesForSkypeID( skypeID );
-		for( size_t i=0, len=confs.size(); i < len; ++i ){
-			xhtmlFileWriter << getHistoryAsXHTML( (void *)&confs[i], true, timeFormat, timeReference ) << "\n";
-		}
-
-		// page footer
-		xhtmlFileWriter << "	</body>\n"
-		                << "</html>";
+		// grab the complete conversation history for the person
+		xhtmlFileWriter << getFullHistoryAsXHTML( skypeID, timeFormat, timeReference ) << "\n";
 
 		// any errors?
 		if( !xhtmlFileWriter.good() ){ throw std::ios::failure( "error while writing to html file" ); }
@@ -41,7 +18,7 @@ namespace SkypeParser
 		// done!
 		xhtmlFileWriter.close();
 
-		// FIXME: analyze these steps and delete file if already partially created; this requires some care to not delete files that existed before the function was called
+		// FIXME: analyze these steps and delete file if only partially written; this requires some care to not delete files that existed before the function was called
 	}
 
 	std::string CSkypeParser::formatTime( const struct tm *timestamp_tm, uint8_t format ) // format 0 = "July 8th, 2010"; format 1 = "8:05:07 AM" (12h time; no zero-padding of hour); format 2 = "08:05:07" (24h time; zero-padding of hour)
@@ -276,8 +253,46 @@ namespace SkypeParser
 	}
 
 	/*
+		Generates the complete XHTML webpage structure for a Skype ID, with their complete 1on1 chat history and all of their conferences.
+		Also see: getHistoryAsXHTML() which grabs specific conversations.
+	*/
+	std::string CSkypeParser::getFullHistoryAsXHTML( const std::string &skypeID, uint8_t timeFormat, int8_t timeReference )
+	{
+		std::stringstream xhtmlOutput( std::stringstream::in | std::stringstream::out ); // holds the xhtml as it's being constructed
+
+		// page header
+		xhtmlOutput << "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n"
+		            << "<html>\n"
+		            << "	<head>\n"
+		            << "		<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n" // we use utf-8 since that's the encoding used by Skype messages
+		            << "		<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\" /> <!-- tells IE to use standards-compliant mode and the newest engine -->\n"
+		            << "		<title>Skype History for " << getDisplayNameAtTime( skypeID, -1 ) << "</title>\n" // puts the person's latest displayname in the page title FIXME: verify that Skype has already escaped < > in the database (as &lt; and &gt;), otherwise we must do this replacement manually; this ALSO applies for ALL other places that the displayname is output
+		            << "		<style type=\"text/css\">\n"
+		            << "			" << style_compact_data_css << "\n"
+		            << "		</style>\n"
+		            << "	</head>\n"
+		            << "	<body>\n";
+
+		// grab the main conversation history for the person
+		xhtmlOutput << getHistoryAsXHTML( (void *)skypeID.c_str(), false, timeFormat, timeReference ) << "\n";
+
+		// output all conferences the person took part in (if any)
+		std::vector<int32_t> confs = getConferencesForSkypeID( skypeID );
+		for( size_t i=0, len=confs.size(); i < len; ++i ){
+			xhtmlOutput << getHistoryAsXHTML( (void *)&confs[i], true, timeFormat, timeReference ) << "\n";
+		}
+
+		// page footer
+		xhtmlOutput << "	</body>\n"
+		            << "</html>";
+
+		// all done! return the resulting XHTML structure.
+		return xhtmlOutput.str();
+	}
+
+	/*
 		Generates the XHTML structure for a single conversation or conference.
-		Doesn't include the overall page structure, and is not the function you want if you just want the entire history for a person. Use exportSkypeHistory() for full, formatted output.
+		Doesn't include the overall page structure, and is not the function you want if you just want the entire history for a person. Use getFullHistoryAsXHTML() for full, formatted output.
 		NOTE: searchValue should be const char* for regular chats or int32_t* for conferences and the function interprets them as one or the other depending on the value of isConference.
 
 		timeFormat must be 1 for 12h time or 2 for 24h time
