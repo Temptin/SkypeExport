@@ -1,5 +1,13 @@
 # Release History
 
+
+## SkypeExport v1.5.0 Stable (June 29th, 2016)
+
+This is a very small maintenance release due to Microsoft's changes to call logging in the Skype database. We are now able to detect all of your phone call durations again.
+
+* (Bug Fix) Improved call details scanner. Microsoft has changed the call logging so that call events lack the conv_dbid value in the database. Therefore, the scanner now uses the modern call_guid mapping method instead, and falls back to the old scanning method for very old database entries (calls made via Skype 4 or older). This ensures that we support Microsoft's changes while still having full backwards compatibility.
+
+
 ## SkypeExport v1.4.0 Stable (December 19th, 2015)
 
 This release brings support for Microsoft's auto-migrated "Windows Live" Skype IDs, and fixes a rare issue with databases containing thousands of conferences. It's the *last-ever* official release of SkypeExport, due to personal time constraints. We already *fully* support the Skype protocol and all of its features in a future-proof way, and we've been stable for 4 years with only a few minor updates when Microsoft bought Skype and added their own Cloud features. *All* past (classic) and present versions of Skype are fully supported - on Windows, OS X and Linux! Have fun and enjoy!

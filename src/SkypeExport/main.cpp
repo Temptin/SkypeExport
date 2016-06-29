@@ -18,7 +18,7 @@ std::string makeSafeFilename( const std::string &input, char replacement )
 
 int main( int argc, char **argv )
 {
-	std::cout << "Skype History Exporter v1.4.0 Stable\n"
+	std::cout << "Skype History Exporter v1.5.0 Stable\n"
 	          << "   WEBSITE: [ https://github.com/Temptin/SkypeExport ]\n"; // helps people find updated versions
 
 	// prepare command line parameters
