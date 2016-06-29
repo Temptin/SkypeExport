@@ -29,6 +29,8 @@ You can verify that the Boost libraries are 32/64 Intel by using "lipo -info" on
 
 After the process is complete, you can then delete the Boost source folder, since it only contains some Boost documentation + examples and is of no use (unless you need that kind of thing on your local drive). It's all available online anyway.
 
+Note: If you're using Boost in another location (such as via Homebrew), you should instead simply edit the "opt_localpath" variable at the top of the build_macosx.sh script before building. You can also set the "opt_arch" variable to a different value, if you don't want to build a 32/64-bit Universal Binary.
+
 
 Now just run the build_macosx.sh script to compile SkypeExport:
 
