@@ -36,3 +36,5 @@ Now just run the build_macosx.sh script to compile SkypeExport:
 
 The SkypeExport binary is created in the release folder, and is a Universal 32/64bit Intel Binary usable on OS X.
 
+You can change the boost location by changing the setting LOCAL=/usr/local in ./build_macosx.sh.
+In case of problems, you can fix the architecture setting ARCH in the same file.
