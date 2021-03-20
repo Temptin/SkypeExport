@@ -19,7 +19,7 @@ namespace fs = boost::filesystem;
 #include <stdint.h>
 #include <cstring> // provides memcpy()
 #include "../libs/sqlite3/sqlite3.h"
-#include <boost/utility.hpp> // provides iterator next() which allows us to peek at the next iterator in sequence
+#include <boost/next_prior.hpp> // provides iterator next() which allows us to peek at the next iterator in sequence
 #include <boost/tokenizer.hpp> // provides a way to access tokens in a string
 #include <boost/regex.hpp>
 
