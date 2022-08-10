@@ -22,6 +22,7 @@ namespace fs = boost::filesystem;
 #include <boost/next_prior.hpp> // provides iterator next() which allows us to peek at the next iterator in sequence
 #include <boost/tokenizer.hpp> // provides a way to access tokens in a string
 #include <boost/regex.hpp>
+#include <boost/next_prior.hpp>
 
 // this is the size in bytes of a Skype GUID (used as value for certain database columns)
 #define SKYPEPARSER_GUID_SIZE 32
