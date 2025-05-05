@@ -58,11 +58,11 @@ int main( int argc, char **argv )
 	outPath.make_preferred();
 	try{
 		if( !fs::exists( dbPath ) || !fs::is_regular_file( dbPath ) ){
-			std::cout << "\nError: Database " << dbPath.leaf() << " does not exist at the provided path!\n\n" << desc << "\n";
+			std::cout << "\nError: Database " << dbPath.filename() << " does not exist at the provided path!\n\n" << desc << "\n";
 			return 1;
 		}
 		if( fs::file_size( dbPath ) == 0 ){
-			std::cout << "\nError: Database " << dbPath.leaf() << " is empty!\n\n" << desc << "\n";
+			std::cout << "\nError: Database " << dbPath.filename() << " is empty!\n\n" << desc << "\n";
 			return 1;
 		}
 		if( fs::exists( outPath ) && !fs::is_directory( outPath ) ){
